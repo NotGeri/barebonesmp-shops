@@ -1,0 +1,87 @@
+/* Generated with this tool: https://transfonter.org/ */
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url('./JetBrainsMono-Regular.woff2') format('woff2'), url('./JetBrainsMono-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@tailwind base;
+@layer base {
+    body {
+        @apply bg-background text-white;
+        font-family: 'JetBrains Mono', sans-serif;
+        font-weight: normal;
+        font-style: normal;
+    }
+
+    h1 {
+        @apply text-2xl font-bold;
+    }
+
+    h2 {
+        @apply text-xl font-bold;
+    }
+
+    h3 {
+        @apply text-lg font-bold;
+    }
+
+    a {
+        @apply text-blue-600;
+        color: #00A8FC;
+    }
+
+    a:focus,
+    a:hover {
+        @apply underline;
+    }
+
+    code, pre {
+        @apply bg-gray-700 p-1 rounded-bl text-white;
+    }
+
+    ul {
+        @apply list-disc ml-5;
+    }
+
+}
+
+@tailwind components;
+@layer components {
+    .btn {
+        @apply rounded p-1 pr-2 pl-2 bg-gray-700 text-center;
+        color: #e2ffff;
+        --btn-bg: #45474e;
+        --btn-bg-hover: #6d6f78;
+        background-color: var(--btn-bg);
+    }
+
+    .btn:focus:not([disabled]),
+    .btn:hover:not([disabled]) {
+        background-color: var(--btn-bg-hover);
+    }
+
+    .btn[disabled] {
+        @apply opacity-75 cursor-not-allowed;
+    }
+
+    .primary {
+        --btn-bg: #5865f2;
+        --btn-bg-hover: #4854D6;
+    }
+
+    .success {
+        --btn-bg: #248046;
+        --btn-bg-hover: #1a6334;
+    }
+
+    .danger {
+        --btn-bg: #f04747;
+        --btn-bg-hover: #CE3232;
+    }
+}
+
+
+@tailwind utilities;
