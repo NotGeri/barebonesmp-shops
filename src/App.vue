@@ -75,7 +75,9 @@ onMounted(async () => {
             price: Number(price),
             stocked: noStock === 'FALSE',
             info,
-            icon
+            icon,
+            asset: assets[id.replace('minecraft:', '')] ?? undefined,
+            iconAsset: icon ? assets[icon.replace('minecraft:', '')] ?? undefined : undefined,
         });
 
     }
@@ -87,12 +89,13 @@ onMounted(async () => {
 
 const filteredShops = computed((): Shop[] => {
     if (!query.value) return shops.value;
+    const lower = query.value.toLowerCase();
 
     return shops.value.reduce<Shop[]>((acc, shop) => {
 
         const matchingItems = shop.items.filter(item =>
-            item.id.toLowerCase().includes(query.value.toLowerCase()) ||
-            (item.info && item.info.toLowerCase().includes(query.value.toLowerCase()))
+            item.id.toLowerCase().includes(lower) || item?.asset?.display?.toLowerCase().includes(lower) ||
+            (item.info && item.info.toLowerCase().includes(lower))
         );
 
         if (matchingItems.length > 0) {

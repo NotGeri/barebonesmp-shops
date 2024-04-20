@@ -11,12 +11,12 @@ export type ItemProps = {
     stocked: boolean
     info?: string
     icon?: string
+    asset?: Asset
+    iconAsset?: Asset
 }
 
-const props = defineProps<ItemProps & { assets: Record<string, Asset> }>();
-const asset = props.assets[props.id.replace('minecraft:', '')] ?? null;
-const iconAsset = props.icon ? props.assets[props.icon.replace('minecraft:', '')] ?? null : null;
-const iconPath = iconAsset?.path ?? asset?.path;
+const props = defineProps<ItemProps>();
+const iconPath = props.iconAsset?.path ?? props.asset?.path;
 </script>
 
 <template>
