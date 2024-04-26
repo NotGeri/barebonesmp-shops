@@ -2,23 +2,25 @@ package dev.geri.tracker;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.geri.tracker.utils.Api;
+import dev.geri.tracker.utils.CustomScreen;
 import dev.geri.tracker.utils.RenderUtils;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.entity.*;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -27,15 +29,21 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 public final class Mod implements ModInitializer {
 
     public static final Item REQUIRED_ITEM = Items.GOLDEN_HOE;
+    public static final List<String> SERVERS = new ArrayList<>() {{
+        this.add("geri.minecraft.best");
+        this.add("play.barebonesmp.com");
+    }};
 
     private static Mod instance;
     private final MinecraftClient mc = MinecraftClient.getInstance();
@@ -46,17 +54,15 @@ public final class Mod implements ModInitializer {
     public RenderUtils.Group shulkerBoxes;
     public List<RenderUtils.Group> allGroups;
 
+    private Api api = new Api();
+    private boolean isOnServer = false;
     private boolean enabled;
-    private Api.Data data;
     private BlockPos latestInteraction;
 
     @Override
     public void onInitialize() {
         if (instance != null) throw new RuntimeException("onInitialize() ran twice!");
         instance = this;
-
-        // Get the data
-        this.data = Api.getAllData();
 
         // Register our desired groups
         this.basicChests = new RenderUtils.Group();
@@ -72,10 +78,31 @@ public final class Mod implements ModInitializer {
                 "test"
         ));
 
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+
+            // Ensure it only checks specific servers
+            ServerInfo serverInfo = handler.getServerInfo();
+            if (serverInfo == null || !SERVERS.contains(serverInfo.address)) return;
+
+            // Get the data
+            try {
+                this.api.init();
+            } catch (IOException exception) {
+                this.mc.inGameHud.setOverlayMessage(Text.literal("§cUnable to fetch tracker API!"), false);
+                return;
+            }
+
+            this.isOnServer = true;
+        });
+
         // Listen for the hotkey
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-
             while (toggleKey.wasPressed()) {
+                if (!this.isOnServer) {
+                    this.mc.inGameHud.setOverlayMessage(Text.literal("§cYou are not on a tracked server!"), false);
+                    return;
+                }
+
                 if (!this.isPlayerAtSpawn()) {
                     this.mc.inGameHud.setOverlayMessage(Text.literal("§cYou are not at spawn!"), false);
                     return;
@@ -95,6 +122,7 @@ public final class Mod implements ModInitializer {
         // Keep track of the latest interaction event, so we can
         // look up the coordinates when we get a specific packet
         UseBlockCallback.EVENT.register((PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) -> {
+
             BlockPos blockPos = hitResult.getBlockPos();
             BlockEntity blockEntity = world.getBlockEntity(blockPos);
             if (blockEntity instanceof ChestBlockEntity || blockEntity instanceof ShulkerBoxBlockEntity) {  // Todo (notgeri): expand this to all after refactor
@@ -121,7 +149,7 @@ public final class Mod implements ModInitializer {
             if (!isAtSpawn(pos.getX(), pos.getY(), pos.getZ())) return;
 
             // See if it's already ignored
-            if (this.data.ignored().contains(new Vector3f(pos.getX(), pos.getY(), pos.getZ()))) return;
+            if (this.api.ignored().contains(new Vector3f(pos.getX(), pos.getY(), pos.getZ()))) return;
 
             // Start tracking them
             if (blockEntity instanceof TrappedChestBlockEntity) this.trapChests.add(blockEntity);
@@ -189,8 +217,7 @@ public final class Mod implements ModInitializer {
         if (this.mc.player == null) return false;
         if (this.mc.player.clientWorld.getRegistryKey() != World.OVERWORLD) return false;
 
-        if (this.data == null) return false;
-        Vector3f[] spawn = this.data.spawn();
+        Vector3i[] spawn = this.api.spawn();
         if (spawn.length < 2) return false;
 
         float x1 = Math.min(spawn[0].x(), spawn[1].x());
@@ -205,6 +232,10 @@ public final class Mod implements ModInitializer {
                 (z >= z1 && z <= z2);
     }
 
+    public Api api() {
+        return this.api;
+    }
+
     public boolean enabled() {
         return this.enabled;
     }
@@ -213,15 +244,10 @@ public final class Mod implements ModInitializer {
         return this.latestInteraction;
     }
 
-    public Api.Data getData() {
-        return this.data;
-    }
-
     /**
      * @return The main Singleton instance of the mod
      */
     public static Mod getInstance() {
         return instance;
     }
-
 }

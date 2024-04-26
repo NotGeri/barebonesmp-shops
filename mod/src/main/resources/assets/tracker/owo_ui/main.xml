@@ -1,0 +1,243 @@
+<owo-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/wisp-forest/owo-lib/1.20/owo-ui.xsd">
+    <components>
+        <flow-layout direction="vertical">
+            <children>
+                <flow-layout direction="vertical">
+                    <children>
+                        <label id="managing">
+                            <text></text>
+                        </label>
+                        <flow-layout direction="horizontal">
+                            <children>
+
+                                <!-- The settings container -->
+                                <flow-layout direction="vertical">
+                                    <children>
+
+                                        <!-- The shop list -->
+                                        <flow-layout direction="vertical">
+                                            <children>
+                                                <label id="selected-shop">
+                                                    <text>Some Shop Name</text>
+                                                    <color>blue</color>
+                                                </label>
+                                                <button>
+                                                    <text>*</text>
+                                                    <sizing>
+                                                        <vertical method="fixed">12</vertical>
+                                                        <horizontal method="fixed">12</horizontal>
+                                                    </sizing>
+                                                </button>
+
+                                                <!--     <scroll direction="vertical">
+                                                         <flow-layout id="shop-container" direction="vertical">
+                                                             <children></children>
+                                                         </flow-layout>
+                                                         <sizing>
+                                                             <vertical method="fixed">30</vertical>
+                                                             <horizontal method="fixed">50</horizontal>
+                                                         </sizing>
+                                                     </scroll>-->
+                                            </children>
+                                        </flow-layout>
+
+                                        <!-- The pricing -->
+                                        <flow-layout direction="vertical">
+                                            <children>
+                                                <label>
+                                                    <text>Price</text>
+                                                    <color>dark-gray</color>
+                                                </label>
+
+                                                <flow-layout direction="horizontal">
+                                                    <children>
+                                                        <text-box id="price">
+                                                            <text>1</text>
+                                                            <sizing>
+                                                                <horizontal method="fixed">30</horizontal>
+                                                                <vertical method="fixed">15</vertical>
+                                                            </sizing>
+                                                            <max-length>3</max-length>
+                                                        </text-box>
+
+                                                        <item>
+                                                            <stack>minecraft:diamond</stack>
+                                                        </item>
+                                                    </children>
+                                                    <horizontal-alignment>center</horizontal-alignment>
+                                                    <vertical-alignment>center</vertical-alignment>
+                                                </flow-layout>
+                                            </children>
+                                        </flow-layout>
+
+                                        <!-- Per -->
+                                        <flow-layout direction="vertical">
+                                            <children>
+                                                <label>
+                                                    <text>Per</text>
+                                                    <color>dark-gray</color>
+                                                </label>
+
+                                                <text-box id="amount">
+                                                    <text>1</text>
+                                                    <sizing>
+                                                        <horizontal method="fixed">30</horizontal>
+                                                        <vertical method="fixed">15</vertical>
+                                                    </sizing>
+                                                    <max-length>3</max-length>
+                                                </text-box>
+
+                                                <flow-layout direction="horizontal">
+                                                    <children>
+                                                        <small-checkbox id="per-piece">
+                                                        </small-checkbox>
+                                                        <label>
+                                                            <text>1x</text>
+                                                            <color>dark-gray</color>
+                                                            <margins>
+                                                                <right>3</right>
+                                                            </margins>
+                                                        </label>
+
+                                                        <small-checkbox id="per-stack">
+                                                        </small-checkbox>
+                                                        <label>
+                                                            <text>64x</text>
+                                                            <color>dark-gray</color>
+                                                            <margins>
+                                                                <right>3</right>
+                                                            </margins>
+                                                        </label>
+
+                                                        <small-checkbox id="per-shulker">
+                                                        </small-checkbox>
+                                                        <block state="minecraft:shulker_box">
+                                                            <sizing>
+                                                                <horizontal method="fixed">15</horizontal>
+                                                                <vertical method="fixed">15</vertical>
+                                                            </sizing>
+                                                        </block>
+
+                                                    </children>
+
+                                                    <gap>3</gap>
+                                                    <padding>
+                                                        <horizontal>2</horizontal>
+                                                    </padding>
+                                                    <horizontal-alignment>left</horizontal-alignment>
+                                                    <vertical-alignment>center</vertical-alignment>
+                                                </flow-layout>
+                                            </children>
+                                        </flow-layout>
+
+                                    </children>
+
+                                    <gap>5</gap>
+                                    <padding>
+                                        <all>5</all>
+                                    </padding>
+                                    <surface>
+                                        <panel/>
+                                    </surface>
+                                </flow-layout>
+
+                                <!-- The items container -->
+                                <flow-layout direction="vertical">
+                                    <children>
+                                        <flow-layout direction="horizontal">
+                                            <children>
+                                                <label>
+                                                    <text>Select Item</text>
+                                                    <color>dark-gray</color>
+                                                </label>
+                                                <button>
+                                                    <text>+</text>
+                                                    <sizing>
+                                                        <vertical method="fixed">12</vertical>
+                                                        <horizontal method="fixed">12</horizontal>
+                                                    </sizing>
+                                                </button>
+                                            </children>
+                                            <gap>100</gap>
+                                        </flow-layout>
+
+                                        <scroll direction="vertical">
+                                            <grid-layout id="item-container" rows="30" columns="3">
+                                                <children>
+
+                                                </children>
+                                                <vertical-alignment>center</vertical-alignment>
+                                            </grid-layout>
+                                            <sizing>
+                                                <vertical method="fixed">100</vertical>
+                                                <horizontal method="fixed">170</horizontal>
+                                            </sizing>
+                                        </scroll>
+
+                                        <label id="note">
+                                            <text></text>
+                                            <color>dark-gray</color>
+                                        </label>
+                                    </children>
+                                    <padding>
+                                        <all>5</all>
+                                    </padding>
+                                    <surface>
+                                        <panel/>
+                                    </surface>
+                                </flow-layout>
+
+                            </children>
+                            <gap>10</gap>
+                        </flow-layout>
+
+                        <!-- The summary -->
+                        <flow-layout direction="horizontal">
+                            <children>
+                                <label id="summary">
+                                    <text></text>
+                                    <color>dark-gray</color>
+                                </label>
+                            </children>
+                            <padding>
+                                <all>5</all>
+                            </padding>
+                            <surface>
+                                <panel/>
+                            </surface>
+                        </flow-layout>
+
+                        <!-- The buttons -->
+                        <flow-layout direction="horizontal">
+                            <children>
+                                <button id="untrack">
+                                    <text>Untrack</text>
+                                </button>
+                                <button id="save">
+                                    <text>Save</text>
+                                </button>
+                            </children>
+                            <gap>5</gap>
+                        </flow-layout>
+                    </children>
+
+                    <horizontal-alignment>center</horizontal-alignment>
+                    <vertical-alignment>center</vertical-alignment>
+
+                    <gap>5</gap>
+                    <padding>
+                        <all>10</all>
+                    </padding>
+                </flow-layout>
+            </children>
+
+            <vertical-alignment>center</vertical-alignment>
+            <horizontal-alignment>center</horizontal-alignment>
+            <surface>
+                <vanilla-translucent/>
+            </surface>
+
+        </flow-layout>
+    </components>
+</owo-ui>
