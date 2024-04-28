@@ -10,10 +10,7 @@ package dev.geri.tracker.utils;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.ChestBlock;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.ChestBlockEntity;
-import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
@@ -29,7 +26,10 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.chunk.WorldChunk;
 import org.joml.Matrix4f;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class RenderUtils {
@@ -207,63 +207,48 @@ public class RenderUtils {
 
     public static final class Group {
 
-        public static final record Entry(
-                BlockPos pos,
-                Box box,
-                Colour colour
-        ) {
-
+        public static class Entry {
+            public List<BlockPos> positions;
+            public Box box;
+            public Colour colour;
         }
 
-        private final ArrayList<Entry> boxes = new ArrayList<>();
-
-        public void add(BlockEntity be, Colour colour) {
-            Box box = getBox(be);
-            if (box == null) return;
-            this.boxes.add(new Entry(be.getPos(), box, colour));
-        }
+        private final ArrayList<Entry> entries = new ArrayList<>();
 
         public Collection<Entry> getEntries() {
-            return this.boxes;
+            return this.entries;
         }
 
-        private Box getBox(BlockEntity be) {
-            BlockPos pos = be.getPos();
+        public void add(List<BlockPos> positions, Colour colour) {
 
-            if (!RenderUtils.canBeClicked(pos)) return null;
+            Entry entry = new Entry();
+            entry.colour = colour;
+            entry.positions = positions;
 
-            if (be instanceof ChestBlockEntity) return getChestBox((ChestBlockEntity) be);
+            // Go through each position
+            for (BlockPos pos : positions) {
 
-            return RenderUtils.getBoundingBox(pos);
-        }
+                // Make sure the position is valid
+                if (!RenderUtils.canBeClicked(pos)) continue;
 
-        private Box getChestBox(ChestBlockEntity cbe) {
-            BlockState state = cbe.getCachedState();
-            if (!state.contains(ChestBlock.CHEST_TYPE)) return null;
-
-            ChestType chestType = state.get(ChestBlock.CHEST_TYPE);
-
-            // ignore other block in double chest
-            if (chestType == ChestType.LEFT) return null;
-
-            BlockPos pos = cbe.getPos();
-            Box box = RenderUtils.getBoundingBox(pos);
-
-            // larger box for double chest
-            if (chestType != ChestType.SINGLE) {
-                BlockPos pos2 = pos.offset(ChestBlock.getFacing(state));
-
-                if (RenderUtils.canBeClicked(pos2)) {
-                    Box box2 = RenderUtils.getBoundingBox(pos2);
-                    box = box.union(box2);
+                // If there isn't a box already, just set it as this
+                // Otherwise, we will get the union of the existing ones
+                Box currentBox = RenderUtils.getBoundingBox(pos);
+                if (entry.box != null) {
+                    entry.box = entry.box.union(currentBox);
+                } else {
+                    entry.box = currentBox;
                 }
             }
 
-            return box;
+            // Start tracking the entry
+            if (entry.box == null) return;
+            this.entries.add(entry);
         }
 
+
         public void clear() {
-            this.boxes.clear();
+            this.entries.clear();
         }
 
     }
@@ -288,8 +273,9 @@ public class RenderUtils {
         public void renderBoxes(Group group) {
 
             for (Group.Entry entry : group.getEntries()) {
-                Box box = entry.box();
-                float[] color = entry.colour().colour();
+                Box box = entry.box;
+                if (box == null) return;
+                float[] color = entry.colour.colour();
                 if (color == null) continue;
 
                 matrixStack.push();

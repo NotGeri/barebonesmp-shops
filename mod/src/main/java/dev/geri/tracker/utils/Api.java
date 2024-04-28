@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName;
 import dev.geri.tracker.Mod;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.util.math.BlockPos;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3i;
@@ -228,6 +229,10 @@ public class Api {
         public Container setLocation(Vector3i location) {
             this.location = location;
             return this;
+        }
+
+        public Container setLocation(BlockPos pos) {
+            return this.setLocation(new Vector3i(pos.getX(), pos.getY(), pos.getZ()));
         }
 
         public int price() {

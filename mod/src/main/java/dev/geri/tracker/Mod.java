@@ -96,7 +96,7 @@ public final class Mod implements ModInitializer {
                     scanner.enable();
                     this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.edit-mode-enabled"), false);
                 } else {
-                    scanner.clear();
+                    scanner.disable();
                     this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.edit-mode-disabled"), false);
                 }
             }
@@ -111,6 +111,7 @@ public final class Mod implements ModInitializer {
     }
 
     public boolean doWeCare(BlockEntity be) {
+        if (be == null) return false;
         if (be instanceof ChestBlockEntity) return true;
         if (be instanceof BarrelBlockEntity) return true;
         if (be instanceof ShulkerBoxBlockEntity) return true;
@@ -119,6 +120,7 @@ public final class Mod implements ModInitializer {
 
     public boolean doWeCare(BlockState state) {
         Block b = state.getBlock();
+        if (b == null) return false;
         if (b instanceof ChestBlock) return true;
         if (b instanceof BarrelBlock) return true;
         if (b instanceof ShulkerBoxBlock) return true;
