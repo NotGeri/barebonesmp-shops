@@ -97,16 +97,15 @@ public class Api {
      * Delete a container
      */
     public void deleteContainer(Container container) {
-        this.executor.submit(() -> {
-            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
-                    .delete(RequestBody.create(gson.toJson(container).getBytes()))
-                    .build()
-            ).execute()) {
-                this.data.containers.remove(this.formatId(container.location));
-            } catch (IOException exception) {
-                Mod.LOGGER.error("unable to delete container", exception);
-            }
-        });
+        try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
+                .delete(RequestBody.create(gson.toJson(container).getBytes()))
+                .build()
+        ).execute()) {
+            this.data.containers.remove(this.formatId(container.location));
+        } catch (IOException exception) {
+            Mod.LOGGER.error("unable to delete container", exception);
+        }
+        // Todo (notgeri): these HAVE to run in the background, running them on the main thread is temporary 
     }
 
     /**

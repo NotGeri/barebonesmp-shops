@@ -6,7 +6,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.ChestBlock;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
@@ -29,12 +28,12 @@ public abstract class WorldMixin {
         World world = MinecraftClient.getInstance().world;
         if (world == null) return;
 
-        if (newBlock.isAir()) this.handleBlockBreak(world, pos, oldBlock, newBlock);
-        else this.handleBlockPlace(world, pos, oldBlock, newBlock);
+        if (newBlock.isAir()) this.handleBlockBreak(world, pos, oldBlock);
+        else this.handleBlockPlace(world, pos, newBlock);
     }
 
     @Unique
-    private void handleBlockPlace(World world, BlockPos pos, BlockState oldBlock, BlockState newBlock) {
+    private void handleBlockPlace(World world, BlockPos pos, BlockState newBlock) {
         Mod mod = Mod.getInstance();
 
         // Check if it's a tile entity we care about
@@ -43,42 +42,90 @@ public abstract class WorldMixin {
         // Ensure we are at spawn
         if (!mod.isAtSpawn(pos.getX(), pos.getY(), pos.getZ())) return;
 
-        // Start tracking it
-        mod.scanner().add(newBlock, pos);
+        // Handle regular containers
+        if (!(newBlock.getBlock() instanceof ChestBlock) || !newBlock.contains(ChestBlock.CHEST_TYPE) || newBlock.get(ChestBlock.CHEST_TYPE) == ChestType.SINGLE) {
+            mod.scanner().add(newBlock, pos);
+            return;
+        }
+
+        // Handle double chests
+        BlockPos otherPos = pos.offset(ChestBlock.getFacing(newBlock));
+        switch (newBlock.get(ChestBlock.CHEST_TYPE)) {
+
+            // If we just placed the right side, migrate the container
+            // from the left side to the right one
+            case RIGHT -> {
+                Api.Container container = mod.api().getContainer(otherPos.getX(), otherPos.getY(), otherPos.getZ());
+
+                // If there isn't a container, just track it
+                if (container == null) {
+                    mod.scanner().add(newBlock, pos);
+                    return;
+                }
+
+                // Delete the original container
+                mod.api().deleteContainer(container);
+                mod.scanner().remove(otherPos);
+
+                // Migrate it to the new position
+                mod.api().saveContainer(container.setLocation(pos));
+                mod.scanner().add(newBlock, pos);
+            }
+
+            // Simply track it and remove the other
+            case LEFT -> {
+                mod.scanner().remove(otherPos);
+                mod.scanner().add(world.getBlockState(otherPos), otherPos);
+            }
+        }
     }
 
     @Unique
-    private void handleBlockBreak(World world, BlockPos pos, BlockState oldBlock, BlockState newBlock) {
+    private void handleBlockBreak(World world, BlockPos pos, BlockState oldBlock) {
         Mod mod = Mod.getInstance();
 
         // Check if it was a block we cared about
         if (!mod.doWeCare(oldBlock)) return;
 
-        // Check if it's a saved container and delete it if so
-        Api.Container container = mod.api().getContainer(pos.getX(), pos.getY(), pos.getZ());
+        // Handle regular containers
+        if (!(oldBlock.getBlock() instanceof ChestBlock) || !oldBlock.contains(ChestBlock.CHEST_TYPE) || oldBlock.get(ChestBlock.CHEST_TYPE) == ChestType.SINGLE) {
+            // Check if it's a container and delete it
+            Api.Container container = mod.api().getContainer(pos.getX(), pos.getY(), pos.getZ());
+            if (container != null) mod.api().deleteContainer(container);
 
-        // For other containers, just delete them
-        if (container != null) {
-            // If the right side of a double chest is broken,
-            // migrate the data to the left
-            if (oldBlock.contains(ChestBlock.CHEST_TYPE) && oldBlock.get(ChestBlock.CHEST_TYPE) == ChestType.RIGHT) {
-                mod.api().deleteContainer(container);
-                mod.api().saveContainer(container.setLocation(pos.offset(ChestBlock.getFacing(oldBlock))));
-                mod.scanner().remove(pos);
-                return;
-            }
-
-            // Delete regular containers
-            mod.api().deleteContainer(container);
+            // Untrack it
+            mod.scanner().remove(pos);
+            return;
         }
 
-        // Remove them from the scanner
-        mod.scanner().remove(pos);
+        // Handle double chests
+        BlockPos otherPos = pos.offset(ChestBlock.getFacing(oldBlock));
+        switch (oldBlock.get(ChestBlock.CHEST_TYPE)) {
 
-        // If it's a double chest, readd the other side
-        if (oldBlock.contains(ChestBlock.CHEST_TYPE) && oldBlock.get(ChestBlock.CHEST_TYPE) != ChestType.SINGLE) {
-            BlockPos otherPos = pos.offset(ChestBlock.getFacing(oldBlock));
-            mod.scanner().add(world.getBlockState(otherPos), otherPos);
+            // If the right side is broken, migrate the container to the left side
+            case RIGHT -> {
+                Api.Container container = mod.api().getContainer(pos.getX(), pos.getY(), pos.getZ());
+
+                // If there isn't a container, just untrack it
+                if (container == null) {
+                    mod.scanner().remove(pos);
+                    return;
+                }
+
+                // Delete the original container
+                mod.api().deleteContainer(container);
+                mod.scanner().remove(pos);
+
+                // Migrate it to the new position
+                mod.api().saveContainer(container.setLocation(otherPos));
+                mod.scanner().add(world.getBlockState(otherPos), otherPos);
+            }
+
+            // Simply untrack it and track the left one
+            case LEFT -> {
+                mod.scanner().add(world.getBlockState(otherPos), otherPos);
+                mod.scanner().remove(pos);
+            }
         }
     }
 }

@@ -80,6 +80,11 @@ public final class Mod implements ModInitializer {
                 return;
             }
 
+            if (this.enabled) {
+                this.enabled = false;
+                this.scanner.disable();
+            }
+
             this.isOnServer = true;
         });
 
