@@ -21,7 +21,6 @@ public class Scanner {
     private final Mod mod = Mod.getInstance();
 
     public RenderUtils.Group basicChests;
-    public RenderUtils.Group trapChests;
     public RenderUtils.Group barrels;
     public RenderUtils.Group shulkerBoxes;
 
@@ -29,10 +28,9 @@ public class Scanner {
 
     public Scanner() {
         this.basicChests = new RenderUtils.Group();
-        this.trapChests = new RenderUtils.Group();
         this.barrels = new RenderUtils.Group();
         this.shulkerBoxes = new RenderUtils.Group();
-        this.allGroups = Arrays.asList(basicChests, trapChests, barrels, shulkerBoxes);
+        this.allGroups = Arrays.asList(basicChests, barrels, shulkerBoxes);
     }
 
     /**
@@ -65,14 +63,14 @@ public class Scanner {
         }
 
         // Start tracking them
-        if (blockEntity instanceof TrappedChestBlockEntity) this.trapChests.add(blockEntity, colour);
-        else if (blockEntity instanceof ChestBlockEntity chester) {
-            // Ignore the left side of double chests
+        if (blockEntity instanceof ChestBlockEntity chester) {
+
             BlockState state = chester.getCachedState();
             if (!state.contains(ChestBlock.CHEST_TYPE)) return;
             ChestType chestType = state.get(ChestBlock.CHEST_TYPE);
             if (chestType == ChestType.LEFT) return;
             this.basicChests.add(blockEntity, colour);
+
         } else if (blockEntity instanceof ShulkerBoxBlockEntity) this.shulkerBoxes.add(blockEntity, colour);
         else if (blockEntity instanceof BarrelBlockEntity) this.barrels.add(blockEntity, colour);
     }

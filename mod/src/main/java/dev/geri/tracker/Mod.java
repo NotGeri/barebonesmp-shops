@@ -8,7 +8,11 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.block.*;
-import net.minecraft.block.entity.*;
+import net.minecraft.block.entity.BarrelBlockEntity;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.entity.ShulkerBoxBlockEntity;
+import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.option.KeyBinding;
@@ -108,7 +112,6 @@ public final class Mod implements ModInitializer {
 
     public boolean doWeCare(BlockEntity be) {
         if (be instanceof ChestBlockEntity) return true;
-        if (be instanceof TrappedChestBlockEntity) return true;
         if (be instanceof BarrelBlockEntity) return true;
         if (be instanceof ShulkerBoxBlockEntity) return true;
         return false;
@@ -117,7 +120,6 @@ public final class Mod implements ModInitializer {
     public boolean doWeCare(BlockState state) {
         Block b = state.getBlock();
         if (b instanceof ChestBlock) return true;
-        if (b instanceof TrappedChestBlock) return true;
         if (b instanceof BarrelBlock) return true;
         if (b instanceof ShulkerBoxBlock) return true;
         return false;
@@ -178,4 +180,26 @@ public final class Mod implements ModInitializer {
     public static Mod getInstance() {
         return instance;
     }
+
+    /**
+     * Adjust a block position to account for double chests
+     */
+    public BlockPos adjustPositionForDoubleChests(BlockPos pos) {
+        if (pos == null) return pos;
+        if (this.mc.world == null) return pos;
+
+        BlockEntity blockEntity = this.mc.world.getBlockEntity(pos);
+        if (!(blockEntity instanceof ChestBlockEntity chester)) return pos;
+
+        BlockState state = chester.getCachedState();
+        if (!state.contains(ChestBlock.CHEST_TYPE)) return pos;
+
+        ChestType chestType = state.get(ChestBlock.CHEST_TYPE);
+        if (chestType == ChestType.LEFT) {
+            pos = pos.offset(ChestBlock.getFacing(state));
+        }
+
+        return pos;
+    }
+
 }

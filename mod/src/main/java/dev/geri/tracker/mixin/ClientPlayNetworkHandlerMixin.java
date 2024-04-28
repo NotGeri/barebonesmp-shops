@@ -6,6 +6,11 @@ import dev.geri.tracker.screens.edit.InventoryInteraction;
 import dev.geri.tracker.screens.edit.UntrackedScreen;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.ChestBlock;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ClientConnectionState;
@@ -47,7 +52,10 @@ public abstract class ClientPlayNetworkHandlerMixin {
 
         // Open our custom GUI on the main render thread
         MinecraftClient.getInstance().execute(() -> {
-            BlockPos pos = Mod.getInstance().latestInteraction();
+
+            // If it's a double chest, adjust the position to always be the right side
+            BlockPos pos = Mod.getInstance().adjustPositionForDoubleChests(Mod.getInstance().latestInteraction());
+
             InventoryInteraction interaction = new InventoryInteraction(
                     packet.getSyncId(),
                     packet.getContents(),
