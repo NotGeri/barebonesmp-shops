@@ -1,13 +1,14 @@
 package dev.geri.tracker.mixin;
 
 import dev.geri.tracker.Mod;
-import dev.geri.tracker.utils.CustomScreen;
+import dev.geri.tracker.screens.edit.EditScreen;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientConnectionState;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.ClientConnection;
+import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket;
 import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,7 +43,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
 
         // Open our custom GUI on the main render thread
         MinecraftClient.getInstance().execute(() -> {
-            CustomScreen screen = new CustomScreen(
+            EditScreen screen = new EditScreen(
                     packet.getSyncId(),
                     packet.getContents(),
                     Mod.getInstance().latestInteraction()
@@ -61,7 +62,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
         if (mod == null || !mod.enabled()) return;
 
         // Ensure it's using the required item
-        if (this.mc.player == null || !this.mc.player.getMainHandStack().isOf(Mod.REQUIRED_ITEM)) return;
+        if (this.mc.player == null || !this.mc.player.isSneaking()) return;
 
         // Cancel the screen opening
         ci.cancel();

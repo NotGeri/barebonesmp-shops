@@ -21,7 +21,7 @@ public class Api {
     private final String BASE_URL = "http://127.0.0.1:8000";
     private final OkHttpClient client = new OkHttpClient();
     private final Gson gson = new Gson();
-    private final ExecutorService executor = Executors.newFixedThreadPool(Math.max(Math.round(Runtime.getRuntime().availableProcessors() * 0.25f), 1));
+    public final ExecutorService executor = Executors.newFixedThreadPool(2); // Todo (notgeri):
 
     private Data data = null;
 
@@ -43,7 +43,7 @@ public class Api {
 
             // Add a reference to the shop
             for (Container container : this.data.containers.values()) {
-                container.shop = this.data.shops.stream().filter(shop1 -> Objects.equals(shop1.id(), container.shopId)).findFirst().orElse(null);
+                container.loadShop(this.data.shops());
             }
         }
     }
@@ -69,6 +69,7 @@ public class Api {
         try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers").header("Content-Type", "application/json").post(RequestBody.create(gson.toJson(container).getBytes())).build()).execute()) {
 
             Container newData = this.gson.fromJson(response.body().string(), Container.class);
+            newData.loadShop(this.data.shops);
             this.data.containers.put(this.formatId(newData.location), newData);
             return newData;
 
@@ -76,6 +77,17 @@ public class Api {
             System.out.println("unable to saved"); // Todo (notgeri): swap to logger
             return null;
         }
+    }
+
+    public void deleteContainer(Container container) {
+        this.executor.submit(() -> {
+            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers").header("Content-Type", "application/json").delete(RequestBody.create(gson.toJson(container).getBytes())).build()).execute()) {
+                this.data.containers.remove(this.formatId(container.location));
+                System.out.println("ok"); // Todo (notgeri):
+            } catch (IOException exception) {
+                System.out.println("unable to delete"); // Todo (notgeri):
+            }
+        });
     }
 
     public List<Shop> shops() {
@@ -245,6 +257,14 @@ public class Api {
             this.shopId = shop.id;
             this.shop = shop;
             return this;
+        }
+
+        public void loadShop(ArrayList<Shop> shops) {
+            this.shop = shops.stream().filter(s -> Objects.equals(s.id(), this.shopId)).findFirst().orElse(null);
+        }
+
+        public boolean recentlyChecked() {
+            return false; // Todo (notgeri):
         }
     }
 

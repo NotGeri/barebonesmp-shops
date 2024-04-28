@@ -16,7 +16,7 @@ public abstract class GameRendererMixin implements AutoCloseable, SynchronousRes
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/render/GameRenderer;renderHand:Z", opcode = Opcodes.GETFIELD, ordinal = 0), method = "renderWorld(FJLnet/minecraft/client/util/math/MatrixStack;)V")
     private void onRenderWorld(float partialTicks, long finishTimeNano, MatrixStack matrixStack, CallbackInfo ci) {
         Mod mod = Mod.getInstance();
-        if (mod != null) mod.onRender(matrixStack);
+        if (mod != null && mod.enabled() && mod.isPlayerAtSpawn()) mod.scanner().onRender(matrixStack);
     }
 
 }

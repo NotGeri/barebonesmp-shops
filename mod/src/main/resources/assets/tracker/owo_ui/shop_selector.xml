@@ -1,0 +1,44 @@
+<owo-ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/wisp-forest/owo-lib/1.20/owo-ui.xsd">
+    <components>
+        <flow-layout direction="vertical">
+            <children>
+                <label>
+                    <text>Select Shop</text>
+                    <margins>
+                        <bottom>5</bottom>
+                    </margins>
+                </label>
+
+                <scroll direction="vertical">
+                    <flow-layout direction="vertical" id="shops">
+                        <children></children>
+                        <vertical-alignment>center</vertical-alignment>
+                        <gap>3</gap>
+                        <padding>
+                            <all>5</all>
+                        </padding>
+                        <surface>
+                            <panel/>
+                        </surface>
+                    </flow-layout>
+                    <sizing>
+                        <vertical method="fixed">50</vertical>
+                    </sizing>
+                </scroll>
+
+                <button id="select">
+                    <text>Select</text>
+                </button>
+
+            </children>
+
+            <vertical-alignment>center</vertical-alignment>
+            <horizontal-alignment>center</horizontal-alignment>
+            <surface>
+                <vanilla-translucent/>
+            </surface>
+
+        </flow-layout>
+    </components>
+</owo-ui>

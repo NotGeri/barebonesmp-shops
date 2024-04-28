@@ -29,11 +29,7 @@ import net.minecraft.util.shape.VoxelShapes;
 import net.minecraft.world.chunk.WorldChunk;
 import org.joml.Matrix4f;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class RenderUtils {
@@ -210,21 +206,25 @@ public class RenderUtils {
     }
 
     public static final class Group {
-        private final ArrayList<Box> boxes = new ArrayList<>();
 
-        public Group() {
-            super();
+        public static final record Entry(
+                BlockPos pos,
+                Box box,
+                Colour colour
+        ) {
+
         }
 
-        public void add(BlockEntity be) {
+        private final ArrayList<Entry> boxes = new ArrayList<>();
+
+        public void add(BlockEntity be, Colour colour) {
             Box box = getBox(be);
             if (box == null) return;
-
-            boxes.add(box);
+            this.boxes.add(new Entry(be.getPos(), box, colour));
         }
 
-        public List<Box> getBoxes() {
-            return Collections.unmodifiableList(boxes);
+        public Collection<Entry> getEntries() {
+            return this.boxes;
         }
 
         private Box getBox(BlockEntity be) {
@@ -237,8 +237,8 @@ public class RenderUtils {
             return RenderUtils.getBoundingBox(pos);
         }
 
-        private Box getChestBox(ChestBlockEntity chestBE) {
-            BlockState state = chestBE.getCachedState();
+        private Box getChestBox(ChestBlockEntity cbe) {
+            BlockState state = cbe.getCachedState();
             if (!state.contains(ChestBlock.CHEST_TYPE)) return null;
 
             ChestType chestType = state.get(ChestBlock.CHEST_TYPE);
@@ -246,7 +246,7 @@ public class RenderUtils {
             // ignore other block in double chest
             if (chestType == ChestType.LEFT) return null;
 
-            BlockPos pos = chestBE.getPos();
+            BlockPos pos = cbe.getPos();
             Box box = RenderUtils.getBoundingBox(pos);
 
             // larger box for double chest
@@ -263,7 +263,7 @@ public class RenderUtils {
         }
 
         public void clear() {
-            boxes.clear();
+            this.boxes.clear();
         }
 
     }
@@ -285,11 +285,12 @@ public class RenderUtils {
             regionZ = (camPos.getZ() >> 9) * 512;
         }
 
-        public void renderBoxes(Group group, Function<Box, float[]> callback) {
+        public void renderBoxes(Group group) {
 
-            for (Box box : group.getBoxes()) {
-                float[] colorF = callback.apply(box);
-                if (colorF == null) continue;
+            for (Group.Entry entry : group.getEntries()) {
+                Box box = entry.box();
+                float[] color = entry.colour().colour();
+                if (color == null) continue;
 
                 matrixStack.push();
                 matrixStack.translate(box.minX - regionX, box.minY, box.minZ - regionZ);
@@ -299,12 +300,12 @@ public class RenderUtils {
                 Matrix4f projMatrix = RenderSystem.getProjectionMatrix();
                 ShaderProgram shader = RenderSystem.getShader();
 
-                RenderSystem.setShaderColor(colorF[0], colorF[1], colorF[2], 0.25F);
+                RenderSystem.setShaderColor(color[0], color[1], color[2], 0.25F);
                 solidBox.bind();
                 solidBox.draw(viewMatrix, projMatrix, shader);
                 VertexBuffer.unbind();
 
-                RenderSystem.setShaderColor(colorF[0], colorF[1], colorF[2], 0.5F);
+                RenderSystem.setShaderColor(color[0], color[1], color[2], 0.5F);
                 outlinedBox.bind();
                 outlinedBox.draw(viewMatrix, projMatrix, shader);
                 VertexBuffer.unbind();

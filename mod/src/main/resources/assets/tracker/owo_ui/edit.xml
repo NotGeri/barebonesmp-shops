@@ -19,10 +19,10 @@
                                         <flow-layout direction="vertical">
                                             <children>
                                                 <label id="selected-shop">
-                                                    <text>Some Shop Name</text>
+                                                    <text></text>
                                                     <color>blue</color>
                                                 </label>
-                                                <button>
+                                                <button id="shop-selector">
                                                     <text>*</text>
                                                     <sizing>
                                                         <vertical method="fixed">12</vertical>
@@ -90,8 +90,9 @@
 
                                                 <flow-layout direction="horizontal">
                                                     <children>
-                                                        <small-checkbox id="per-piece">
-                                                        </small-checkbox>
+                                                        <flow-layout direction="vertical" id="per-piece">
+                                                            <children></children>
+                                                        </flow-layout>
                                                         <label>
                                                             <text>1x</text>
                                                             <color>dark-gray</color>
@@ -100,8 +101,9 @@
                                                             </margins>
                                                         </label>
 
-                                                        <small-checkbox id="per-stack">
-                                                        </small-checkbox>
+                                                        <flow-layout direction="vertical" id="per-stack">
+                                                            <children></children>
+                                                        </flow-layout>
                                                         <label>
                                                             <text>64x</text>
                                                             <color>dark-gray</color>
@@ -110,8 +112,9 @@
                                                             </margins>
                                                         </label>
 
-                                                        <small-checkbox id="per-shulker">
-                                                        </small-checkbox>
+                                                        <flow-layout direction="vertical" id="per-shulker">
+                                                            <children></children>
+                                                        </flow-layout>
                                                         <block state="minecraft:shulker_box">
                                                             <sizing>
                                                                 <horizontal method="fixed">15</horizontal>
@@ -145,40 +148,32 @@
                                 <!-- The items container -->
                                 <flow-layout direction="vertical">
                                     <children>
-                                        <flow-layout direction="horizontal">
+                                        <label>
+                                            <text>Select Sold Item</text>
+                                            <color>dark-gray</color>
+                                            <margins>
+                                                <left>45</left>
+                                                <bottom>3</bottom>
+                                            </margins>
+                                        </label>
+
+                                        <flow-layout direction="horizontal" id="item-container-wrapper">
                                             <children>
-                                                <label>
-                                                    <text>Select Item</text>
-                                                    <color>dark-gray</color>
-                                                </label>
-                                                <button>
-                                                    <text>+</text>
+                                                <scroll id="item-container-scroll" direction="vertical">
+                                                    <grid-layout id="item-container" rows="30" columns="3">
+                                                        <children>
+
+                                                        </children>
+                                                        <vertical-alignment>center</vertical-alignment>
+                                                    </grid-layout>
                                                     <sizing>
-                                                        <vertical method="fixed">12</vertical>
-                                                        <horizontal method="fixed">12</horizontal>
+                                                        <vertical method="fixed">100</vertical>
+                                                        <horizontal method="fixed">170</horizontal>
                                                     </sizing>
-                                                </button>
+                                                </scroll>
                                             </children>
-                                            <gap>100</gap>
                                         </flow-layout>
 
-                                        <scroll direction="vertical">
-                                            <grid-layout id="item-container" rows="30" columns="3">
-                                                <children>
-
-                                                </children>
-                                                <vertical-alignment>center</vertical-alignment>
-                                            </grid-layout>
-                                            <sizing>
-                                                <vertical method="fixed">100</vertical>
-                                                <horizontal method="fixed">170</horizontal>
-                                            </sizing>
-                                        </scroll>
-
-                                        <label id="note">
-                                            <text></text>
-                                            <color>dark-gray</color>
-                                        </label>
                                     </children>
                                     <padding>
                                         <all>5</all>
