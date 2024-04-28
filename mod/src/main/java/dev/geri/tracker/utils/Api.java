@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -76,36 +77,38 @@ public class Api {
      * @param container The container to update
      * @return The updated container
      */
-    public Container saveContainer(Container container) {
-        try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
-                .post(RequestBody.create(gson.toJson(container).getBytes()))
-                .build()
-        ).execute()) {
+    public CompletableFuture<Container> saveContainer(Container container) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
+                    .post(RequestBody.create(gson.toJson(container).getBytes()))
+                    .build()
+            ).execute()) {
 
-            Container newData = this.gson.fromJson(response.body().string(), Container.class);
-            newData.loadShop(this.data.shops);
-            this.data.containers.put(this.formatId(newData.location), newData);
-            return newData;
+                Container newData = this.gson.fromJson(response.body().string(), Container.class);
+                newData.loadShop(this.data.shops);
+                this.data.containers.put(this.formatId(newData.location), newData);
+                return newData;
 
-        } catch (IOException exception) {
-            Mod.LOGGER.error("unable to save container", exception);
-            return null;
-        }
+            } catch (IOException exception) {
+                throw new RuntimeException("Container save failed", exception);
+            }
+        });
     }
 
     /**
      * Delete a container
      */
-    public void deleteContainer(Container container) {
-        try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
-                .delete(RequestBody.create(gson.toJson(container).getBytes()))
-                .build()
-        ).execute()) {
-            this.data.containers.remove(this.formatId(container.location));
-        } catch (IOException exception) {
-            Mod.LOGGER.error("unable to delete container", exception);
-        }
-        // Todo (notgeri): these HAVE to run in the background, running them on the main thread is temporary 
+    public CompletableFuture<Void> deleteContainer(Container container) {
+        return CompletableFuture.runAsync(() -> {
+            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
+                    .delete(RequestBody.create(gson.toJson(container).getBytes()))
+                    .build()
+            ).execute()) {
+                this.data.containers.remove(this.formatId(container.location));
+            } catch (IOException exception) {
+                throw new RuntimeException("Unable to delete container", exception);
+            }
+        }, this.executor);
     }
 
     /**

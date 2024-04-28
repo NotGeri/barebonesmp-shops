@@ -6,11 +6,6 @@ import dev.geri.tracker.screens.edit.InventoryInteraction;
 import dev.geri.tracker.screens.edit.UntrackedScreen;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ChestBlock;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.ChestBlockEntity;
-import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ClientConnectionState;
@@ -50,28 +45,27 @@ public abstract class ClientPlayNetworkHandlerMixin {
         // Ensure only verified IDs are checked
         if (!this.ids.contains(packet.getSyncId())) return;
 
+        // If it's a double chest, adjust the position to always be the right side
+        BlockPos pos = Mod.getInstance().adjustPositionForDoubleChests(Mod.getInstance().latestInteraction());
+
+        // Create our full interaction context
+        InventoryInteraction interaction = new InventoryInteraction(
+                packet.getSyncId(),
+                packet.getContents(),
+                pos,
+                Mod.getInstance().api().getContainer(pos.getX(), pos.getY(), pos.getZ())
+        );
+
+        // Check which screen we should display
+        Screen screen;
+        if (interaction.container() != null && interaction.container().untracked()) {
+            screen = new UntrackedScreen(interaction);
+        } else {
+            screen = new EditScreen(interaction);
+        }
+
         // Open our custom GUI on the main render thread
-        MinecraftClient.getInstance().execute(() -> {
-
-            // If it's a double chest, adjust the position to always be the right side
-            BlockPos pos = Mod.getInstance().adjustPositionForDoubleChests(Mod.getInstance().latestInteraction());
-
-            InventoryInteraction interaction = new InventoryInteraction(
-                    packet.getSyncId(),
-                    packet.getContents(),
-                    pos,
-                    Mod.getInstance().api().getContainer(pos.getX(), pos.getY(), pos.getZ())
-            );
-
-            Screen screen;
-            if (interaction.container() != null && interaction.container().untracked()) {
-                screen = new UntrackedScreen(interaction);
-            } else {
-                screen = new EditScreen(interaction);
-            }
-
-            this.mc.setScreen(screen);
-        });
+        Mod.getInstance().setScreen(screen);
     }
 
     @Inject(method = "onOpenScreen", at = @At(value = "HEAD"), cancellable = true)

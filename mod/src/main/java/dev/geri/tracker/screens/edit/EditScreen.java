@@ -91,9 +91,10 @@ public class EditScreen extends CustomScreen {
             this.container = new Api.Container();
             this.container.setUntracked(true);
             this.container.setLocation(new Vector3i(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
-            this.mod.api().saveContainer(this.container);
-            this.mod.scanner().refresh(this.pos);
-            this.mc.setScreen(null);
+            this.mod.setScreen(null);
+            this.mod.api().saveContainer(this.container).thenRun(() -> {
+                this.mod.scanner().refresh(this.pos);
+            });
         });
 
         // Handle the per checkboxes
@@ -166,13 +167,16 @@ public class EditScreen extends CustomScreen {
         this.save = rootComponent.childById(ButtonComponent.class, "save");
         this.recalculateSaveButton();
         this.save.onPress(press -> {
+            this.container.setUntracked(false);
             this.container.setLocation(new Vector3i(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
             this.container.setPrice(Integer.parseInt(price.getText())); // Todo (notgeri):
             this.container.setAmount(Integer.parseInt(amount.getText())); // Todo (notgeri):
             this.container.setPer(getSelectedPer.get());
 
-            this.container = Mod.getInstance().api().saveContainer(container);
-            this.mod.scanner().refresh(this.pos);
+            Mod.getInstance().api().saveContainer(container).thenAccept(container -> {
+                this.container = container;
+                this.mod.scanner().refresh(this.pos);
+            });
         });
     }
 

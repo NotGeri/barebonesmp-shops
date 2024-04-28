@@ -5,6 +5,7 @@ import dev.geri.tracker.screens.CustomScreen;
 import dev.geri.tracker.utils.Api;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
@@ -25,9 +26,10 @@ public class UntrackedScreen extends CustomScreen {
             // The user will be prompted with the regular GUI so they can set it up
             BlockPos pos = this.interaction.pos();
             if (interaction.container() != null) {
-                this.mod.api().deleteContainer(interaction.container());
-                this.mc.setScreen(new EditScreen(this.interaction));
-                this.mod.scanner().refresh(pos);
+                this.mod.api().deleteContainer(interaction.container()).thenRun(() -> {
+                    this.mod.setScreen(new EditScreen(this.interaction));
+                    this.mod.scanner().refresh(pos);
+                });
             } else {
                 super.close();
             }

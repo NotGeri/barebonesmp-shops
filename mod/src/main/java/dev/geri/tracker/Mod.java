@@ -14,6 +14,7 @@ import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -24,6 +25,7 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,13 +117,14 @@ public final class Mod implements ModInitializer {
         });
     }
 
-    public boolean doWeCare(BlockEntity be) {
-        if (be == null) return false;
-        if (be instanceof ChestBlockEntity) return true;
-        if (be instanceof BarrelBlockEntity) return true;
-        if (be instanceof ShulkerBoxBlockEntity) return true;
-        return false;
-    }
+    /**
+     * Set a screen for the main MC instance
+     * using a render thread
+     * @param screen The screen or null to close it
+     */
+   public void setScreen(@Nullable Screen screen) {
+        this.mc.execute(() -> this.mc.setScreen(screen));
+   }
 
     public boolean doWeCare(BlockState state) {
         Block b = state.getBlock();

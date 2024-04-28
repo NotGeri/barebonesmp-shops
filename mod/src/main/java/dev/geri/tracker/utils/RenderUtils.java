@@ -246,7 +246,6 @@ public class RenderUtils {
             this.entries.add(entry);
         }
 
-
         public void clear() {
             this.entries.clear();
         }

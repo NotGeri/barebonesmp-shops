@@ -43,7 +43,7 @@ public abstract class WorldMixin {
         if (!mod.isAtSpawn(pos.getX(), pos.getY(), pos.getZ())) return;
 
         // Handle regular containers
-        if (!(newBlock.getBlock() instanceof ChestBlock) || !newBlock.contains(ChestBlock.CHEST_TYPE) || newBlock.get(ChestBlock.CHEST_TYPE) == ChestType.SINGLE) {
+        if (!(newBlock.getBlock() instanceof ChestBlock) || (newBlock.contains(ChestBlock.CHEST_TYPE) && newBlock.get(ChestBlock.CHEST_TYPE) == ChestType.SINGLE)) {
             mod.scanner().add(newBlock, pos);
             return;
         }
@@ -64,12 +64,14 @@ public abstract class WorldMixin {
                 }
 
                 // Delete the original container
-                mod.api().deleteContainer(container);
-                mod.scanner().remove(otherPos);
+                mod.api().deleteContainer(container).thenRun(() -> {
+                    mod.scanner().remove(otherPos);
 
-                // Migrate it to the new position
-                mod.api().saveContainer(container.setLocation(pos));
-                mod.scanner().add(newBlock, pos);
+                    // Migrate it to the new position
+                    mod.api().saveContainer(container.setLocation(pos)).thenRun(() -> {
+                        mod.scanner().add(newBlock, pos);
+                    });
+                });
             }
 
             // Simply track it and remove the other
@@ -91,10 +93,11 @@ public abstract class WorldMixin {
         if (!(oldBlock.getBlock() instanceof ChestBlock) || !oldBlock.contains(ChestBlock.CHEST_TYPE) || oldBlock.get(ChestBlock.CHEST_TYPE) == ChestType.SINGLE) {
             // Check if it's a container and delete it
             Api.Container container = mod.api().getContainer(pos.getX(), pos.getY(), pos.getZ());
-            if (container != null) mod.api().deleteContainer(container);
-
-            // Untrack it
-            mod.scanner().remove(pos);
+            if (container != null) {
+                mod.api().deleteContainer(container).thenRun(() -> mod.scanner().remove(pos));
+            } else {
+                mod.scanner().remove(pos);
+            }
             return;
         }
 
@@ -108,23 +111,22 @@ public abstract class WorldMixin {
 
                 // If there isn't a container, just untrack it
                 if (container == null) {
-                    mod.scanner().remove(pos);
+                    mod.scanner().add(world.getBlockState(otherPos), otherPos);
                     return;
                 }
 
                 // Delete the original container
-                mod.api().deleteContainer(container);
-                mod.scanner().remove(pos);
-
-                // Migrate it to the new position
-                mod.api().saveContainer(container.setLocation(otherPos));
-                mod.scanner().add(world.getBlockState(otherPos), otherPos);
+                mod.api().deleteContainer(container).thenRun(() -> {
+                    // Migrate it to the new position
+                    mod.api().saveContainer(container.setLocation(otherPos)).thenRun(() -> {
+                        mod.scanner().add(world.getBlockState(otherPos), otherPos);
+                    });
+                });
             }
 
             // Simply untrack it and track the left one
             case LEFT -> {
                 mod.scanner().add(world.getBlockState(otherPos), otherPos);
-                mod.scanner().remove(pos);
             }
         }
     }
