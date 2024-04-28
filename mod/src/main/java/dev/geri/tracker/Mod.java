@@ -21,6 +21,8 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.joml.Vector3i;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,16 +31,18 @@ import java.util.List;
 public final class Mod implements ModInitializer {
 
     public static final String ID = "tracker";
+    public static final Logger LOGGER = LoggerFactory.getLogger(ID);
     public static final List<String> SERVERS = new ArrayList<>() {{
         this.add("geri.minecraft.best");
         this.add("play.barebonesmp.com");
     }};
 
     private static Mod instance;
-    private final MinecraftClient mc = MinecraftClient.getInstance();
 
+    private final MinecraftClient mc = MinecraftClient.getInstance();
     private Scanner scanner;
-    private Api api = new Api();
+    private Api api;
+
     private boolean isOnServer = false;
     private boolean enabled;
     private BlockPos latestInteraction;
@@ -49,12 +53,13 @@ public final class Mod implements ModInitializer {
         instance = this;
 
         this.scanner = new Scanner();
+        this.api = new Api();
 
         // Register the hotkey
         KeyBinding toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "toggle",
+                "key.tracker.edit-mode",
                 InputUtil.UNKNOWN_KEY.getCode(),
-                "test"
+                "category.tracker.main"
         ));
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
@@ -67,7 +72,7 @@ public final class Mod implements ModInitializer {
             try {
                 this.api.init();
             } catch (IOException exception) {
-                this.mc.inGameHud.setOverlayMessage(Text.literal("§cUnable to fetch tracker API!"), false);
+                this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.api-error"), false);
                 return;
             }
 
@@ -78,20 +83,17 @@ public final class Mod implements ModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (toggleKey.wasPressed()) {
                 if (!this.isOnServer) {
-                    this.mc.inGameHud.setOverlayMessage(Text.literal("§cYou are not on a tracked server!"), false);
-                    return;
-                }
-
-                if (!this.isPlayerAtSpawn()) {
-                    this.mc.inGameHud.setOverlayMessage(Text.literal("§cYou are not at spawn!"), false);
+                    this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.unsupported-server"), false);
                     return;
                 }
 
                 this.enabled = !enabled;
                 if (this.enabled) {
                     scanner.enable();
+                    this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.edit-mode-enabled"), false);
                 } else {
                     scanner.clear();
+                    this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.edit-mode-disabled"), false);
                 }
             }
         });
@@ -154,7 +156,7 @@ public final class Mod implements ModInitializer {
                 (z >= z1 && z <= z2);
     }
 
-    public Scanner scanner()  {
+    public Scanner scanner() {
         return this.scanner;
     }
 

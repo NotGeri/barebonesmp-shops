@@ -1,3 +1,24 @@
 {
-  "text.tracker.summary": "Someone sells X items for X diamonds at %s %s %s"
+  "category.tracker.main": "Shop Tracker",
+  "key.tracker.edit-mode": "Enter Edit Mode",
+  "text.tracker.edit-mode-enabled": "Tracker edit mode §aON",
+  "text.tracker.edit-mode-disabled": "Tracker edit mode §cOFF",
+  "text.tracker.entered-spawn": "§7Entering shopping area!",
+  "text.tracker.left-spawn": "§7Leaving shopping area!",
+  "text.tracker.managing": "Managing Container: X: %s, Y: %s, Z: %s",
+  "text.tracker.summary": "Someone sells X items for X diamonds at %s %s %s",
+  "text.tracker.no-shop-selected": "No shop selected!",
+  "text.tracker.no-shops-available": "No shops available!",
+  "text.tracker.unsupported-location": [
+    {
+      "text": "You are not at the shopping area!",
+      "color": "red"
+    }
+  ],
+  "text.tracker.api-error": [
+    {
+      "text": "Unable to fetch the API!",
+      "color": "red"
+    }
+  ]
 }

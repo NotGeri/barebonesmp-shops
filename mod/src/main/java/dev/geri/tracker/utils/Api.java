@@ -2,10 +2,11 @@ package dev.geri.tracker.utils;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import dev.geri.tracker.Mod;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3i;
 
 import java.io.IOException;
@@ -18,14 +19,36 @@ import java.util.concurrent.Executors;
 
 public class Api {
 
-    private final String BASE_URL = "http://127.0.0.1:8000";
-    private final OkHttpClient client = new OkHttpClient();
+    private final String BASE_URL = "http://127.0.0.1:8000/api";
+
+    private final OkHttpClient client = new OkHttpClient.Builder().addInterceptor(new Interceptor() {
+        @NotNull
+        @Override
+        public Response intercept(@NotNull Interceptor.Chain chain) throws IOException {
+            Request original = chain.request();
+            Request.Builder builder = original.newBuilder()
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json");
+
+            ClientPlayerEntity player = MinecraftClient.getInstance().player;
+            if (player != null) builder.header("Player", player.getUuidAsString());
+
+            return chain.proceed(builder.method(original.method(), original.body()).build());
+        }
+    }).build();
+
     private final Gson gson = new Gson();
     public final ExecutorService executor = Executors.newFixedThreadPool(2); // Todo (notgeri):
 
     private Data data = null;
 
+    /**
+     * Run the initial API call which will collect
+     * all the current data from the API to be cached
+     * @throws IOException
+     */
     public void init() throws IOException {
+
         // Do the initial API call
         Request request = new Request.Builder().url(BASE_URL).build();
         try (Response response = client.newCall(request).execute()) {
@@ -42,13 +65,21 @@ public class Api {
 
             // Add a reference to the shop
             for (Container container : this.data.containers.values()) {
-                container.loadShop(this.data.shops());
+                container.loadShop(this.data.shops);
             }
         }
     }
 
+    /**
+     * Create or update a specific container
+     * @param container The container to update
+     * @return The updated container
+     */
     public Container saveContainer(Container container) {
-        try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers").header("Content-Type", "application/json").post(RequestBody.create(gson.toJson(container).getBytes())).build()).execute()) {
+        try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
+                .post(RequestBody.create(gson.toJson(container).getBytes()))
+                .build()
+        ).execute()) {
 
             Container newData = this.gson.fromJson(response.body().string(), Container.class);
             newData.loadShop(this.data.shops);
@@ -56,52 +87,72 @@ public class Api {
             return newData;
 
         } catch (IOException exception) {
-            System.out.println("unable to saved"); // Todo (notgeri): swap to logger
+            Mod.LOGGER.error("unable to save container", exception);
             return null;
         }
     }
 
+    /**
+     * Delete a container
+     */
     public void deleteContainer(Container container) {
         this.executor.submit(() -> {
-            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers").header("Content-Type", "application/json").delete(RequestBody.create(gson.toJson(container).getBytes())).build()).execute()) {
+            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
+                    .delete(RequestBody.create(gson.toJson(container).getBytes()))
+                    .build()
+            ).execute()) {
                 this.data.containers.remove(this.formatId(container.location));
-                System.out.println("ok"); // Todo (notgeri):
             } catch (IOException exception) {
-                System.out.println("unable to delete"); // Todo (notgeri):
+                Mod.LOGGER.error("unable to delete container", exception);
             }
         });
     }
 
+    /**
+     * @return The list of available cached shops
+     */
     public List<Shop> shops() {
         return this.data.shops;
     }
 
+    /**
+     * @return The cached corners of spawn
+     */
     public Vector3i[] spawn() {
         return this.data.spawn;
+    }
+
+    /**
+     * @return The formatted vector ID
+     */
+    private String formatId(Vector3i location) {
+        return this.formatId(location.x, location.y, location.z);
+    }
+
+    /**
+     * @return The formatted coordinate ID
+     */
+    private String formatId(int x, int y, int z) {
+        return "%s_%s_%s".formatted(x, y, z);
+    }
+
+    /**
+     * Get a specific container at a position
+     * @return The container or null if not found
+     */
+    public Container getContainer(int x, int y, int z) {
+        return this.data.containers.get(this.formatId(x, y, z));
     }
 
     public static class Data {
         private Vector3i[] spawn;
         private ArrayList<Shop> shops;
         private HashMap<String, Container> containers;
-        private List<Vector3i> ignored;
 
         public Data(Vector3i[] spawn, ArrayList<Shop> shops, HashMap<String, Container> containers) {
             this.containers = containers;
             this.shops = shops;
             this.spawn = spawn;
-        }
-
-        public Vector3i[] spawn() {
-            return spawn;
-        }
-
-        public ArrayList<Shop> shops() {
-            return shops;
-        }
-
-        public HashMap<String, Container> containers() {
-            return containers;
         }
     }
 
@@ -250,18 +301,6 @@ public class Api {
         public boolean recentlyChecked() {
             return false; // Todo (notgeri):
         }
-    }
-
-    private String formatId(Vector3i location) {
-        return this.formatId(location.x, location.y, location.z);
-    }
-
-    private String formatId(int x, int y, int z) {
-        return "%s_%s_%s".formatted(x, y, z);
-    }
-
-    public Container getContainer(int x, int y, int z) {
-        return this.data.containers.get(this.formatId(x, y, z));
     }
 
 }

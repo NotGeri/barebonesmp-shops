@@ -39,7 +39,8 @@ public abstract class ClientPlayNetworkHandlerMixin {
 
     @Inject(method = "onInventory(Lnet/minecraft/network/packet/s2c/play/InventoryS2CPacket;)V", at = @At(value = "TAIL"))
     private void onInventory(InventoryS2CPacket packet, CallbackInfo ci) {
-        System.out.println("onInventory " + packet.getSyncId()); // Todo (notgeri):
+
+        Mod.LOGGER.info("onInventory {}", packet.getSyncId()); // Todo (notgeri):
 
         // Ensure only verified IDs are checked
         if (!this.ids.contains(packet.getSyncId())) return;
@@ -68,7 +69,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
     @Inject(method = "onOpenScreen", at = @At(value = "HEAD"), cancellable = true)
     private void onOpenScreen(OpenScreenS2CPacket packet, CallbackInfo ci) {
 
-        System.out.println("onOpenScreen " + packet.getSyncId()); // Todo (notgeri):
+        Mod.LOGGER.info("onOpenScreen {}", packet.getSyncId()); // Todo (notgeri):
 
         // Ensure the mod is enabled
         Mod mod = Mod.getInstance();

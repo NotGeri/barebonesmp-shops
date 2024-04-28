@@ -10,7 +10,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
-import org.joml.Vector3i;
 import org.lwjgl.opengl.GL11;
 
 import java.util.Arrays;

@@ -66,7 +66,7 @@ public class EditScreen extends CustomScreen {
     protected void build(FlowLayout rootComponent) {
         // Handle updating the title
         LabelComponent managing = rootComponent.childById(LabelComponent.class, "managing");
-        managing.text(Text.literal("Managing Container: X: %s, Y: %s, Z: %s".formatted(this.pos.getX(), this.pos.getY(), this.pos.getZ())));
+        managing.text(Text.translatable("text.tracker.managing", this.pos.getX(), this.pos.getY(), this.pos.getZ()));
 
         // Handle building the item container
         GridLayout itemContainer = rootComponent.childById(GridLayout.class, "item-container");
@@ -314,7 +314,7 @@ public class EditScreen extends CustomScreen {
             if (this.container == null) this.container = new Api.Container();
             this.container.setShop(shop);
         }
-        this.selectedShop.text(Text.literal(this.container != null && this.container.shop() != null ? this.container.shop().name() : "no shop yet"));
+        this.selectedShop.text(this.container != null && this.container.shop() != null ? Text.literal(this.container.shop().name()) : Text.translatable("text.tracker.no-shop-selected"));
         this.recalculateSaveButton();
     }
 

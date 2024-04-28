@@ -72,7 +72,7 @@ public class ShopSelectorScreens extends CustomScreen {
                 shopsContainer.child(shopContainer.gap(1).verticalAlignment(VerticalAlignment.CENTER));
             }
         } else {
-            shopsContainer.child(Components.label(Text.literal("No shops available")));
+            shopsContainer.child(Components.label(Text.translatable("text.tracker.no-shops-available")));
         }
 
         // Handle the select button

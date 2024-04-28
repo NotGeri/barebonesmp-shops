@@ -9,13 +9,14 @@ const database = './data.json';
 let data: { shops: Shop[], containers: Record<string, Container>, spawn: Location[], } = {
     shops: [],
     containers: {},
-    spawn: [ { x: 500, y: 500, z: 500 }, { x: -500, y: -500, z: -500 } ],
+    spawn: [],
 };
 
 const save = async () => await fs.writeFile(database, JSON.stringify(data, null, 4));
 
 try {
     data = JSON.parse((await fs.readFile(database)).toString());
+    data.spawn = [ { x: -1, y: -256, z: -26 }, { x: -7, y: 256, z: -32 } ];
 } catch (error) {
     if ((error as any).code === 'ENOENT') {
         await save();
@@ -28,6 +29,15 @@ try {
 // Initialise the router
 const app = express();
 app.use(express.json());
+app.use((req, res, next) => {
+    const uuid = req.headers['player'];
+    const ip = req.ip;
+    const method = req.method;
+    const path = req.originalUrl;
+
+    console.log(`[${ip}] [${method}] ${path} (${uuid ?? 'Unknown UUID'})`);
+    next();
+});
 
 type Shop = {
     id: string
@@ -70,14 +80,14 @@ const getLocationId = (loc: unknown): { x: number, y: number, z: number, hash: s
 /**
  * Endpoint for a master read of all shops and their items
  */
-app.get('/', async (req, res) => {
+app.get('/api', async (req, res) => {
     res.send(data);
 });
 
 /**
  * Create a new shop
  */
-app.post('/shops', async (req, res) => {
+app.post('/api/shops', async (req, res) => {
     const shop = { ...req.body, id: uuidv4() };
     data.shops.push(shop);
     res.status(200).json(shop);
@@ -87,7 +97,7 @@ app.post('/shops', async (req, res) => {
 /**
  * Create or update a container
  */
-app.post('/containers', async (req, res) => {
+app.post('/api/containers', async (req, res) => {
 
     const body: Record<keyof Container, any> = {
         untracked: Boolean(req.body.untracked),
@@ -142,7 +152,7 @@ app.post('/containers', async (req, res) => {
 /**
  * Delete a container
  */
-app.delete('/containers', async (req, res) => {
+app.delete('/api/containers', async (req, res) => {
 
     let location;
     try {
