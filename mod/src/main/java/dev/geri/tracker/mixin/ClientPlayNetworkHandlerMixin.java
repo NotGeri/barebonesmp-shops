@@ -2,15 +2,18 @@ package dev.geri.tracker.mixin;
 
 import dev.geri.tracker.Mod;
 import dev.geri.tracker.screens.edit.EditScreen;
+import dev.geri.tracker.screens.edit.InventoryInteraction;
+import dev.geri.tracker.screens.edit.UntrackedScreen;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ClientConnectionState;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.ClientConnection;
-import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
 import net.minecraft.network.packet.s2c.play.InventoryS2CPacket;
 import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
+import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,7 +30,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
     private final MinecraftClient mc = MinecraftClient.getInstance();
 
     @Unique
-    private ArrayList<Integer> ids;
+    private ArrayList<Integer> ids; // Todo (notgeri): make this expire
 
     @Inject(method = "<init>", at = @At(value = "TAIL"))
     private void init(MinecraftClient client, ClientConnection clientConnection, ClientConnectionState clientConnectionState, CallbackInfo ci) {
@@ -43,11 +46,21 @@ public abstract class ClientPlayNetworkHandlerMixin {
 
         // Open our custom GUI on the main render thread
         MinecraftClient.getInstance().execute(() -> {
-            EditScreen screen = new EditScreen(
+            BlockPos pos = Mod.getInstance().latestInteraction();
+            InventoryInteraction interaction = new InventoryInteraction(
                     packet.getSyncId(),
                     packet.getContents(),
-                    Mod.getInstance().latestInteraction()
+                    pos,
+                    Mod.getInstance().api().getContainer(pos.getX(), pos.getY(), pos.getZ())
             );
+
+            Screen screen;
+            if (interaction.container() != null && interaction.container().untracked()) {
+                screen = new UntrackedScreen(interaction);
+            } else {
+                screen = new EditScreen(interaction);
+            }
+
             this.mc.setScreen(screen);
         });
     }

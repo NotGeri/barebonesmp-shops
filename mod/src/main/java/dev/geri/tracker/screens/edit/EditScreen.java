@@ -23,6 +23,7 @@ import org.joml.Vector3i;
 
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 public class EditScreen extends CustomScreen {
 
@@ -38,20 +39,15 @@ public class EditScreen extends CustomScreen {
     private ButtonComponent save;
     private ItemStack customItemValue;
 
-    /**
-     * Create a new screen
-     * @param syncId The sync ID of the original container open so we can safely close it
-     * @param pos The position of the container
-     */
-    public EditScreen(int syncId, List<ItemStack> items, BlockPos pos) {
+    public EditScreen(InventoryInteraction interaction) {
         super(FlowLayout.class, DataSource.asset(new Identifier(Mod.ID, "edit")));
-        this.syncId = syncId;
-        this.pos = pos;
-        this.container = Mod.getInstance().api().getContainer(pos.getX(), pos.getY(), pos.getZ());
+        this.syncId = interaction.syncId();
+        this.pos = interaction.pos();
+        this.container = interaction.container();
 
         // Calculate how much of a specific item we have in the chest
         HashMap<Item, Integer> rawItems = new HashMap<>();
-        for (ItemStack item : items) {
+        for (ItemStack item : interaction.items()) {
             // Ignore the player's items
             if (this.mc.player != null && this.mc.player.getInventory().contains(item)) continue;
 
@@ -89,8 +85,16 @@ public class EditScreen extends CustomScreen {
         LabelComponent summary = rootComponent.childById(LabelComponent.class, "summary");
         summary.text(Text.translatable("text.tracker.summary", this.pos.getX(), this.pos.getY(), this.pos.getZ()));
 
-        // Handle the untruck button
+        // Handle the untrack button
         ButtonComponent untrack = rootComponent.childById(ButtonComponent.class, "untrack");
+        untrack.onPress(press -> {
+            this.container = new Api.Container();
+            this.container.setUntracked(true);
+            this.container.setLocation(new Vector3i(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
+            this.mod.api().saveContainer(this.container);
+            this.mod.scanner().refresh(this.pos);
+            this.mc.setScreen(null);
+        });
 
         // Handle the per checkboxes
         FlowLayout perPieceWrapper = rootComponent.childById(FlowLayout.class, "per-piece");
@@ -133,18 +137,30 @@ public class EditScreen extends CustomScreen {
         TextBoxComponent amount = rootComponent.childById(TextBoxComponent.class, "amount");
         amount.onChanged().subscribe((change) -> this.recalculateSaveButton());
 
-        // Handle setting all the values if the container
-        // is pulled from the API successfully
         this.selectShop(this.container != null ? this.container.shop() : null);
+
+        // Handle setting all the values if the container is pulled from the API successfully
         if (this.container != null) {
             if (this.container.per() != null) this.perCheckBoxes.get(this.container.per()).checked(true);
             price.text(this.container.price() + "");
             amount.text(this.container.amount() + "");
-        } else { // Define some defaults
-            this.perCheckBoxes.get(Api.Per.STACK).checked(true);
-            price.text("1");
-            amount.text("1");
         }
+
+        Supplier<Api.Per> getSelectedPer = () -> {
+            for (Map.Entry<Api.Per, ToggleableSmallCheckBox> entry : this.perCheckBoxes.entrySet()) {
+                Api.Per type = entry.getKey();
+                SmallCheckboxComponent checkbox = entry.getValue();
+                if (checkbox.checked()) {
+                    return type;
+                }
+            }
+            return null;
+        };
+
+        // Default to some values
+        if (getSelectedPer.get() == null) this.perCheckBoxes.get(Api.Per.STACK).checked(true);
+        if (price.getText().isEmpty()) price.text("0");
+        if (amount.getText().isEmpty()) amount.text("0");
 
         // Handle the save button
         this.save = rootComponent.childById(ButtonComponent.class, "save");
@@ -153,17 +169,10 @@ public class EditScreen extends CustomScreen {
             this.container.setLocation(new Vector3i(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
             this.container.setPrice(Integer.parseInt(price.getText())); // Todo (notgeri):
             this.container.setAmount(Integer.parseInt(amount.getText())); // Todo (notgeri):
-
-            for (Map.Entry<Api.Per, ToggleableSmallCheckBox> entry : this.perCheckBoxes.entrySet()) {
-                Api.Per type = entry.getKey();
-                SmallCheckboxComponent checkbox = entry.getValue();
-                if (checkbox.checked()) {
-                    this.container.setPer(type);
-                    break;
-                }
-            }
+            this.container.setPer(getSelectedPer.get());
 
             this.container = Mod.getInstance().api().saveContainer(container);
+            this.mod.scanner().refresh(this.pos);
         });
     }
 

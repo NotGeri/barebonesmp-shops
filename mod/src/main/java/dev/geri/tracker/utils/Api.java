@@ -35,34 +35,16 @@ public class Api {
             this.data = this.gson.fromJson(response.body().string(), Data.class);
 
             // Double check to make sure we have all the data or default
-            if (this.data == null) this.data = new Data(new Vector3i[]{}, new ArrayList<>(), new HashMap<>(), new ArrayList<>());
+            if (this.data == null) this.data = new Data(new Vector3i[]{}, new ArrayList<>(), new HashMap<>());
             if (this.data.spawn == null) this.data.spawn = new Vector3i[]{};
             if (this.data.containers == null) this.data.containers = new HashMap<>();
             if (this.data.shops == null) this.data.shops = new ArrayList<>();
-            if (this.data.ignored == null) this.data.ignored = new ArrayList<>();
 
             // Add a reference to the shop
             for (Container container : this.data.containers.values()) {
                 container.loadShop(this.data.shops());
             }
         }
-    }
-
-    /**
-     * Mark a specific container as ignored and submit it to the API
-     * // Todo (notgeri): eventually we should have a call to clean up ones that aren't containers anymore
-     */
-    public void addIgnored(int x, int y, int z) {
-        Vector3i v = new Vector3i(x, y, z);
-        this.data.ignored.add(v);
-        this.executor.submit(() -> {
-            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/ignored").header("Content-Type", "application/json").post(RequestBody.create(gson.toJson(v).getBytes())).build()).execute()) {
-                System.out.println("ignored " + response.code() + " " + response.body().string());
-            } catch (IOException exception) {
-                System.out.println("unable to add to ignore"); // Todo (notgeri): swap to logger
-                this.data.ignored.remove(v);
-            }
-        });
     }
 
     public Container saveContainer(Container container) {
@@ -94,10 +76,6 @@ public class Api {
         return this.data.shops;
     }
 
-    public List<Vector3i> ignored() {
-        return this.data.ignored;
-    }
-
     public Vector3i[] spawn() {
         return this.data.spawn;
     }
@@ -108,11 +86,10 @@ public class Api {
         private HashMap<String, Container> containers;
         private List<Vector3i> ignored;
 
-        public Data(Vector3i[] spawn, ArrayList<Shop> shops, HashMap<String, Container> containers, List<Vector3i> ignored) {
+        public Data(Vector3i[] spawn, ArrayList<Shop> shops, HashMap<String, Container> containers) {
             this.containers = containers;
             this.shops = shops;
             this.spawn = spawn;
-            this.ignored = ignored;
         }
 
         public Vector3i[] spawn() {
@@ -125,10 +102,6 @@ public class Api {
 
         public HashMap<String, Container> containers() {
             return containers;
-        }
-
-        public List<Vector3i> ignored() {
-            return ignored;
         }
     }
 
@@ -146,6 +119,8 @@ public class Api {
     }
 
     public static final class Container {
+        private boolean untracked;
+
         private String id;
         private String shopId;
         private String icon;
@@ -158,6 +133,15 @@ public class Api {
         private long lastChecked;
 
         private transient Shop shop;
+
+        public boolean untracked() {
+            return untracked;
+        }
+
+        public Container setUntracked(boolean untracked) {
+            this.untracked = untracked;
+            return this;
+        }
 
         public String id() {
             return id;

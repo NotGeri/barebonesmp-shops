@@ -6,11 +6,10 @@ type Location = { x: number; y: number; z: number };
 
 // Load the database
 const database = './data.json';
-let data: { shops: Shop[], containers: Record<string, Container>, spawn: Location[], ignored: Location[] } = {
+let data: { shops: Shop[], containers: Record<string, Container>, spawn: Location[], } = {
     shops: [],
     containers: {},
     spawn: [ { x: 500, y: 500, z: 500 }, { x: -500, y: -500, z: -500 } ],
-    ignored: [],
 };
 
 const save = async () => await fs.writeFile(database, JSON.stringify(data, null, 4));
@@ -38,15 +37,16 @@ type Shop = {
 }
 
 type Container = {
-    icon: string
-    shopId: string
     location: Location
-    price: number
-    per: 'piece' | 'stack' | 'shulker'
-    amount: number
-    stocked: number
-    customName: string
-    lastChecked: number
+    untracked?: true
+    icon?: string
+    shopId?: string
+    price?: number
+    per?: 'piece' | 'stack' | 'shulker'
+    amount?: number
+    stocked?: number
+    customName?: string
+    lastChecked?: number
 }
 
 /**
@@ -75,25 +75,6 @@ app.get('/', async (req, res) => {
 });
 
 /**
- * Add a new ignored container
- */
-app.post('/ignored', async (req, res) => {
-    const { x, y, z } = req.body;
-    data.ignored.push({ x, y, z });
-    await save();
-});
-
-/**
- * Remove an ignored container
- */
-app.delete('/ignored', async (req, res) => {
-    const { x, y, z } = req.body;
-    data.ignored = data.ignored.filter(i => i.x !== x && i.y !== y && i.z !== z);
-    await save();
-});
-
-
-/**
  * Create a new shop
  */
 app.post('/shops', async (req, res) => {
@@ -109,10 +90,11 @@ app.post('/shops', async (req, res) => {
 app.post('/containers', async (req, res) => {
 
     const body: Record<keyof Container, any> = {
+        untracked: Boolean(req.body.untracked),
         location: req.body.location,
         shopId: req.body.shopId,
-        price: req.body.price,
-        amount: req.body.amount,
+        price: Number(req.body.price),
+        amount: Number(req.body.amount), // Todo (notgeri): validate all this
         customName: req.body.customName,
         icon: req.body.icon,
         lastChecked: req.body.lastChecked,
@@ -128,7 +110,11 @@ app.post('/containers', async (req, res) => {
         return res.status(400).json({ error: `Invalid location provided: ${(error as any).message}` });
     }
 
+    // Make sure the location can't be updated
     let container = data.containers[location.hash];
+    if (container) delete (body['location']);
+
+    const untracking = body.untracked || (container?.untracked && body.untracked === undefined);
 
     // Make sure the shop exists
     let shop: Shop | undefined;
@@ -138,16 +124,13 @@ app.post('/containers', async (req, res) => {
     } else {
         shop = data.shops.find(shop => shop.id === body.shopId);
     }
-    if (!shop) return res.status(404).json({ error: 'Shop not found' });
-
-    // Make sure the location can't be updated
-    if (container) delete (body['location']);
+    if (!untracking && !shop) return res.status(404).json({ error: 'Shop not found' });
 
     // Update properties
     const updatedContainer = {
         ...container ?? {},
         ...body,
-        shopId: shop.id,
+        ...!untracking ? { shopId: shop?.id } : {},
     };
 
     // Report back

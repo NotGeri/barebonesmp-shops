@@ -6,6 +6,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.entity.*;
 import net.minecraft.block.enums.ChestType;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
@@ -17,6 +18,7 @@ import java.util.List;
 
 public class Scanner {
 
+    private final MinecraftClient mc = MinecraftClient.getInstance();
     private final Mod mod = Mod.getInstance();
 
     public RenderUtils.Group basicChests;
@@ -52,13 +54,11 @@ public class Scanner {
         // Double check to make sure the block is within spawn
         if (!this.mod.isAtSpawn(pos.getX(), pos.getY(), pos.getZ())) return;
 
-        // See if it's already ignored on an API level
-        if (this.mod.api().ignored().contains(new Vector3i(pos.getX(), pos.getY(), pos.getZ()))) return;
-
         // See if it's tracked
         Api.Container container = this.mod.api().getContainer(pos.getX(), pos.getY(), pos.getZ());
         Colour colour;
         if (container != null) {
+            if (container.untracked()) return;
             if (container.recentlyChecked()) colour = Colour.RECENTLY_CHECKED;
             else colour = Colour.CHECK_EXPIRED;
         } else {
@@ -76,6 +76,13 @@ public class Scanner {
             this.basicChests.add(blockEntity, colour);
         } else if (blockEntity instanceof ShulkerBoxBlockEntity) this.shulkerBoxes.add(blockEntity, colour);
         else if (blockEntity instanceof BarrelBlockEntity) this.barrels.add(blockEntity, colour);
+    }
+
+    public void refresh(BlockPos pos) {
+        if (this.mc.world == null) return;
+        BlockEntity be = this.mc.world.getBlockEntity(pos);
+        this.remove(pos);
+        if (be != null) this.add(be);
     }
 
     public void remove(BlockPos pos) {
