@@ -4,82 +4,94 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import dev.geri.tracker.Mod;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.util.math.BlockPos;
-import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 import org.joml.Vector3i;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.net.URI;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class Api {
-
-    private final String BASE_URL = "http://127.0.0.1:8000/api";
-
-    private final OkHttpClient client = new OkHttpClient.Builder().addInterceptor(new Interceptor() {
-        @NotNull
-        @Override
-        public Response intercept(@NotNull Interceptor.Chain chain) throws IOException {
-            Request original = chain.request();
-            Request.Builder builder = original.newBuilder()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json");
-
-            ClientPlayerEntity player = MinecraftClient.getInstance().player;
-            if (player != null) builder.header("Player", player.getUuidAsString());
-
-            return chain.proceed(builder.method(original.method(), original.body()).build());
-        }
-    }).build();
+public class Api extends WebSocketClient {
 
     private final Gson gson = new Gson();
-    public final ExecutorService executor = Executors.newFixedThreadPool(2); // Todo (notgeri):
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     private Data data = null;
 
-    /**
-     * Run the initial API call which will collect
-     * all the current data from the API to be cached
-     * @throws IOException
-     */
-    public void init() throws IOException {
+    public Api(URI uri) {
+        super(uri);
+    }
 
-        // Do the initial API call
-        Request request = new Request.Builder().url(BASE_URL).build();
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) throw new IOException("Unexpected API response " + response);
+    @Override
+    public void onOpen(ServerHandshake data) {
+        if (MinecraftClient.getInstance().player == null) return;
+        this.send("auth", Map.of("uuid", MinecraftClient.getInstance().player.getUuid()));
+    }
 
-            // Parse the response
-            this.data = this.gson.fromJson(response.body().string(), Data.class);
+    @Override
+    public void onMessage(String message) {
+        String[] parts = message.split(" ", 2);
 
-            // Double check to make sure we have all the data or default
-            if (this.data == null) this.data = new Data(new Vector3i[]{}, new ArrayList<>(), new HashMap<>());
-            if (this.data.spawn == null) this.data.spawn = new Vector3i[]{};
-            if (this.data.containers == null) this.data.containers = new HashMap<>();
-            if (this.data.shops == null) this.data.shops = new ArrayList<>();
+        String command = parts.length > 0 ? parts[0] : "";
+        String rawArgs = parts.length > 1 ? parts[1] : null;
 
-            // Add a reference to the shop
-            for (Container container : this.data.containers.values()) {
-                container.loadShop(this.data.shops);
+        switch (command) {
+            case "authenticated" -> this.authenticated(rawArgs);
+            default -> {
+                Mod.LOGGER.warn("Unknown websocket command: {} {}", command, rawArgs);
             }
         }
     }
 
+    public void authenticated(String rawArgs) {
+        // Parse the response
+        this.data = this.gson.fromJson(rawArgs, Data.class);
+
+        // Double check to make sure we have all the data or default
+        if (this.data == null) this.data = new Data(new Vector3i[]{}, new ArrayList<>(), new HashMap<>());
+        if (this.data.spawn == null) this.data.spawn = new Vector3i[]{};
+        if (this.data.containers == null) this.data.containers = new HashMap<>();
+        if (this.data.shops == null) this.data.shops = new ArrayList<>();
+
+        // Add a reference to the shop
+        for (Container container : this.data.containers.values()) {
+            container.loadShop(this.data.shops);
+        }
+    }
+
+    @Override
+    public void onClose(int code, String reason, boolean remote) {
+        System.out.println("Closed with exit code " + code + " additional info: " + reason);
+    }
+
+    @Override
+    public void onError(Exception exception) {
+        System.err.println("An error occurred:" + exception);
+    }
+
+    public void send(String message, Object data) {
+        this.send(message + " " + this.gson.toJson(data));
+    }
+
+    @Override
+    public void close() {
+        this.data = null;
+        super.close();
+    }
+
     /**
      * Create or update a specific container
+     *
      * @param container The container to update
      * @return The updated container
      */
     public CompletableFuture<Container> saveContainer(Container container) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
+/*            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
                     .post(RequestBody.create(gson.toJson(container).getBytes()))
                     .build()
             ).execute()) {
@@ -91,10 +103,12 @@ public class Api {
 
             } catch (IOException exception) {
                 throw new RuntimeException("Container save failed", exception);
-            }
+            }*/
+            return null;
         });
     }
 
+    // Currently doing: set these up with the websocket ()
     /**
      * Delete a container
      */
@@ -141,6 +155,7 @@ public class Api {
 
     /**
      * Get a specific container at a position
+     *
      * @return The container or null if not found
      */
     public Container getContainer(int x, int y, int z) {
@@ -308,6 +323,7 @@ public class Api {
         public boolean recentlyChecked() {
             return false; // Todo (notgeri):
         }
+
     }
 
 }

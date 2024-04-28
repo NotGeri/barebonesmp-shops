@@ -8,10 +8,8 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.block.*;
-import net.minecraft.block.entity.BarrelBlockEntity;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
-import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.block.enums.ChestType;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -30,9 +28,10 @@ import org.joml.Vector3i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public final class Mod implements ModInitializer {
 
@@ -59,7 +58,6 @@ public final class Mod implements ModInitializer {
         instance = this;
 
         this.scanner = new Scanner();
-        this.api = new Api();
 
         // Register the hotkey
         KeyBinding toggleKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -74,12 +72,13 @@ public final class Mod implements ModInitializer {
             ServerInfo serverInfo = handler.getServerInfo();
             if (serverInfo == null || !SERVERS.contains(serverInfo.address.split(":")[0])) return;
 
-            // Get the data
+            // Open the websocket connection
             try {
-                this.api.init();
-            } catch (IOException exception) {
+                this.api = new Api(new URI("ws://127.0.0.1:8000"));
+                CompletableFuture.runAsync(() -> this.api.connect());
+            } catch (Exception exception) {
+                LOGGER.error("Couldn't connect to tracker", exception);
                 this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.api-error"), false);
-                return;
             }
 
             if (this.enabled) {
@@ -90,8 +89,14 @@ public final class Mod implements ModInitializer {
             this.isOnServer = true;
         });
 
+        // Ensure the websocket closes
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            if (!this.isOnServer) return;
+            this.api.close();
+        });
+
         // Listen for the hotkey
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+        ClientTickEvents.END_CLIENT_TICK.register(c -> {
             while (toggleKey.wasPressed()) {
                 if (!this.isOnServer) {
                     this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.unsupported-server"), false);
@@ -120,11 +125,12 @@ public final class Mod implements ModInitializer {
     /**
      * Set a screen for the main MC instance
      * using a render thread
+     *
      * @param screen The screen or null to close it
      */
-   public void setScreen(@Nullable Screen screen) {
+    public void setScreen(@Nullable Screen screen) {
         this.mc.execute(() -> this.mc.setScreen(screen));
-   }
+    }
 
     public boolean doWeCare(BlockState state) {
         Block b = state.getBlock();
