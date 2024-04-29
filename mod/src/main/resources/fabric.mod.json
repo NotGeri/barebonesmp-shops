@@ -17,6 +17,9 @@
   "entrypoints": {
     "main": [
       "dev.geri.tracker.Mod"
+    ],
+    "journeymap": [
+      "dev.geri.tracker.vendor.JourneyMap"
     ]
   },
   "mixins": [

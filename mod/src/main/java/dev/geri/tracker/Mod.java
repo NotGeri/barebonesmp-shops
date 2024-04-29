@@ -2,6 +2,7 @@ package dev.geri.tracker;
 
 import dev.geri.tracker.utils.Api;
 import dev.geri.tracker.utils.Scanner;
+import dev.geri.tracker.vendor.WaypointCreationEvent;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -98,6 +99,17 @@ public final class Mod implements ModInitializer {
         // Listen for the hotkey
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
             while (toggleKey.wasPressed()) {
+                try {
+                    if (!WaypointCreationEvent.EVENT.invoker().onCreateWaypoint(
+                            MinecraftClient.getInstance().player.getWorld(),
+                            MinecraftClient.getInstance().player.getBlockPos(),
+                            "Test",
+                            "test"
+                    )) this.mc.inGameHud.setOverlayMessage(Text.literal("REEEEEEEEE"), false);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
                 if (!this.isOnServer) {
                     this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.unsupported-server"), false);
                     return;

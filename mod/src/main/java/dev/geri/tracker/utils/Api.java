@@ -28,6 +28,7 @@ public class Api extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake data) {
+        this.doubleCheck();
         if (MinecraftClient.getInstance().player == null) return;
         this.send("auth", Map.of("uuid", MinecraftClient.getInstance().player.getUuid()));
     }
@@ -50,17 +51,22 @@ public class Api extends WebSocketClient {
     public void authenticated(String rawArgs) {
         // Parse the response
         this.data = this.gson.fromJson(rawArgs, Data.class);
-
-        // Double check to make sure we have all the data or default
-        if (this.data == null) this.data = new Data(new Vector3i[]{}, new ArrayList<>(), new HashMap<>());
-        if (this.data.spawn == null) this.data.spawn = new Vector3i[]{};
-        if (this.data.containers == null) this.data.containers = new HashMap<>();
-        if (this.data.shops == null) this.data.shops = new ArrayList<>();
+        this.doubleCheck();
 
         // Add a reference to the shop
         for (Container container : this.data.containers.values()) {
             container.loadShop(this.data.shops);
         }
+    }
+
+    /**
+     * Double check to make sure we have all the data or default
+     */
+    private void doubleCheck() {
+        if (this.data == null) this.data = new Data(new Vector3i[]{}, new ArrayList<>(), new HashMap<>());
+        if (this.data.spawn == null) this.data.spawn = new Vector3i[]{};
+        if (this.data.containers == null) this.data.containers = new HashMap<>();
+        if (this.data.shops == null) this.data.shops = new ArrayList<>();
     }
 
     @Override
@@ -109,19 +115,20 @@ public class Api extends WebSocketClient {
     }
 
     // Currently doing: set these up with the websocket ()
+
     /**
      * Delete a container
      */
     public CompletableFuture<Void> deleteContainer(Container container) {
         return CompletableFuture.runAsync(() -> {
-            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
+     /*       try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
                     .delete(RequestBody.create(gson.toJson(container).getBytes()))
                     .build()
             ).execute()) {
                 this.data.containers.remove(this.formatId(container.location));
             } catch (IOException exception) {
                 throw new RuntimeException("Unable to delete container", exception);
-            }
+            }*/
         }, this.executor);
     }
 
@@ -136,6 +143,7 @@ public class Api extends WebSocketClient {
      * @return The cached corners of spawn
      */
     public Vector3i[] spawn() {
+        if (this.data == null) this.doubleCheck();
         return this.data.spawn;
     }
 
