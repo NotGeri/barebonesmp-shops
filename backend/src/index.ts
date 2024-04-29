@@ -1,8 +1,9 @@
 import express, { Request } from 'express';
 import WebSocket, { WebSocketServer } from 'ws';
 import { Database } from './utils/database.ts';
-import { validate } from 'uuid';
-import { handleEdit } from './routes/containers.ts';
+import { handleAuth } from './routes/auth.ts';
+import { handleContainerDelete, handleContainerEdit } from './routes/containers.ts';
+import { v4 } from 'uuid';
 
 export type Location = { x: number; y: number; z: number };
 
@@ -58,58 +59,96 @@ const server = app.listen(8000, () => {
 // Set up the websocket server
 const wss = new WebSocketServer({ server });
 
-type Player = {
+type Command = 'auth' | 'container_update' | 'container_delete';
+
+type Player = { uuid: string };
+type CommandSender = (command: Command, syncId: number | null, args?: any) => void;
+type ExtendedWebSocket = WebSocket & {
     uuid: string
-}
+    player?: Player
+    log: (message: string) => void
+    command: CommandSender
+    commandAll: CommandSender
+};
 
-type ExtendedWebSocket = WebSocket & { player: Player | null }
+export type Handler = (
+    ws: ExtendedWebSocket,
+    syncId: number | null,
+    args: any,
+) => Promise<{ // If we return some results, it will automatically be sent to the client
+    command: Command
+    args?: any,
+    global?: boolean, // Whether to also echo the event to other clients without the sync ID
+} | void>;
 
+const handlers: Record<Command, Handler> = {
+    'auth': handleAuth,
+    'container_update': handleContainerEdit,
+    'container_delete': handleContainerDelete,
+};
+
+let clients: ExtendedWebSocket[] = [];
 wss.on('connection', (ws: ExtendedWebSocket, req: Request) => {
-    const log = (message: string) => {
-        console.log(`${req.socket.remoteAddress} [WS] ${ws.player?.uuid ? `(${ws.player?.uuid}) ` : ''}${message}`);
+    ws.uuid = v4();
+    clients.push(ws);
+
+    ws.log = (message: string) => console.log(`${req.socket.remoteAddress} [WS] ${ws.player?.uuid ? `(${ws.player?.uuid}) ` : ''}${message}`);
+    ws.log(`connected (${clients.length} connected)`);
+
+    /**
+     * Send a command to the client
+     * @param command
+     * @param syncId
+     * @param args
+     */
+    ws.command = (command, syncId, args) => {
+        ws.send(`${command} ${syncId} ${args ? JSON.stringify(args) : ''}`);
     };
 
-    log('connected');
-
-    ws.player = null;
+    /**
+     * Send a command to all connected clients
+     * @param command
+     * @param syncId
+     * @param args
+     */
+    ws.commandAll = (command, syncId, args) => {
+        clients.forEach(client => {
+            client.command(command, syncId, args);
+        });
+    };
 
     ws.on('message', async (message) => {
+        const parts = message?.toString()?.split(' ');
+        const command = parts[0] ?? null;
+        const syncId = parts.length > 1 ? Number(parts[1]) : null;
+        const args = parts.length > 2 ? JSON.parse(parts[2]) : null;
 
-        // Parse the command and arguments
-        const raw = message?.toString()?.split(' ');
-        const command = raw[0] ?? null;
-        delete (raw[0]);
-        const rawArgs = raw?.join('');
-        const args = rawArgs ? JSON.parse(rawArgs) : null;
+        // Check if it's a valid command
+        if (!(command in handlers)) {
+            ws.log(`send unknown command ${command}`);
+            return;
+        } else {
+            ws.log(`${command} (#${syncId})`);
+        }
 
-        switch (command) {
-            // Handle authenticating the user
-            case 'auth':
-                if (!validate(args?.uuid)) {
-                    ws.send('Invalid UUID');
-                    ws.close();
-                    return;
-                }
-                ws.player = { uuid: args.uuid };
-                log('authenticated successfully');
+        // Execute the handler and return any data automatically
+        const result = await handlers[command as Command](ws, syncId, args);
+        if (!result) return;
 
-                ws.send(`authenticated ${JSON.stringify(db.data)}`);
-                break;
-
-            case 'update':
-                break;
-
-            case 'edit':
-                await handleEdit(log, args)
-                break;
-
-            default:
-                log(`send unknown command ${command}`);
-                break;
+        ws.command(result.command, syncId, result.args);
+        if (result.global) {
+            clients.forEach(client => {
+                if (client.uuid === ws.uuid) return;
+                client.command(result.command, null, result.args);
+            });
         }
     });
 
+    /**
+     * Clean up closed sockets
+     */
     ws.on('close', () => {
-        log('disconnected');
+        clients = clients.filter(c => c.uuid && c.uuid !== ws.uuid);
+        ws.log(`disconnected (${clients.length} connected)`);
     });
 });

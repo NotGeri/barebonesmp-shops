@@ -1,11 +1,10 @@
-import { Request, Response } from 'express';
-import type { Container, Shop } from '../index.ts';
+import type { Container, Handler, Shop } from '../index.ts';
 import { Database } from '../utils/database.ts';
 import { parseLocationId } from '../utils/helpers.ts';
 
 const db = Database.getInstance();
 
-export const handleEdit = async (log: (message: string) => void, args: any) => {
+export const handleContainerEdit: Handler = async (ws, syncId, args) => {
 
     const body: Record<keyof Container, any> = {
         untracked: Boolean(args.untracked),
@@ -25,7 +24,7 @@ export const handleEdit = async (log: (message: string) => void, args: any) => {
     try {
         location = parseLocationId(body.location);
     } catch (error) {
-        return log(`Invalid location provided: ${(error as any).message}`);
+        return ws.log(`Invalid location provided: ${(error as any).message}`);
     }
 
     // Make sure the location can't be updated
@@ -43,35 +42,35 @@ export const handleEdit = async (log: (message: string) => void, args: any) => {
         shop = db.data.shops.find(shop => shop.id === body.shopId);
     }
     if (!untracking && !shop) {
-        return log('Shop not found');
+        return ws.log('Shop not found');
     }
 
     // Update properties
-    const updatedContainer = {
+    const updated = {
         ...container ?? {},
         ...body,
         ...!untracking ? { shopId: shop?.id } : {},
     };
-
-    // Report back
-    db.data.containers[location.hash] = updatedContainer;
+    db.data.containers[location.hash] = updated;
     await db.save();
+
+    return { command: 'container_update', args: updated, global: true };
 };
 
-export const deleteContainer = async (req: Request, res: Response) => {
-
+export const handleContainerDelete: Handler = async (ws, syncId, args) => {
     let location;
     try {
-        location = parseLocationId(req.body.location);
+        location = parseLocationId(args.location);
     } catch (error) {
-        return res.status(400).json({ error: `Invalid location provided: ${(error as any).message}` });
+        return ws.log(`Invalid location provided: ${(error as any).message}`);
     }
 
     const container = db.data.containers[location.hash];
-    if (!container) res.status(404).json({ error: 'Could not find container!' });
+    if (!container) return ws.log(`Could not find container: ${location}`);
 
     delete (db.data.containers[location.hash]);
     await db.save();
-    res.status(200).json();
+
+    return { command: 'container_delete', args: location, global: true };
 };
 

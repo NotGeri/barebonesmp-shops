@@ -91,7 +91,7 @@ public class EditScreen extends CustomScreen {
             this.container = new Api.Container();
             this.container.setUntracked(true);
             this.container.setLocation(new Vector3i(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
-            this.mod.setScreen(null);
+            this.close();
             this.mod.api().saveContainer(this.container).thenRun(() -> {
                 this.mod.scanner().refresh(this.pos);
             });
@@ -172,6 +172,7 @@ public class EditScreen extends CustomScreen {
             this.container.setPrice(Integer.parseInt(price.getText())); // Todo (notgeri):
             this.container.setAmount(Integer.parseInt(amount.getText())); // Todo (notgeri):
             this.container.setPer(getSelectedPer.get());
+            this.close();
 
             Mod.getInstance().api().saveContainer(container).thenAccept(container -> {
                 this.container = container;
@@ -311,6 +312,7 @@ public class EditScreen extends CustomScreen {
     /**
      * Select a specific shop for this container
      * This will not save the choice yet
+     *
      * @param shop
      */
     public void selectShop(Api.Shop shop) {

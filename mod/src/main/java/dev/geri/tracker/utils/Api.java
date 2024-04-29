@@ -12,17 +12,36 @@ import org.joml.Vector3i;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class Api extends WebSocketClient {
 
     private final Gson gson = new Gson();
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
+
+    private int syncId = 0;
+    private final Map<Integer, CompletableFuture<String>> pendingResponses = new ConcurrentHashMap<>();
 
     private Data data = null;
 
-    public Api(URI uri) {
+    public enum Command {
+        AUTH("auth"),
+        UPDATE_CONTAINER("container_update"),
+        DELETE_CONTAINER("container_delete"),
+        CREATE_SHOP("shop_create"),
+        UPDATE_SHOP("shop_update"),
+        DELETE_SHOP("shop_delete"),
+        UNKNOWN(null);
+
+        public final String raw;
+
+        Command(String raw) {
+            this.raw = raw;
+        }
+    }
+
+    private final Mod mod = Mod.getInstance();
+    public Api( URI uri) {
         super(uri);
     }
 
@@ -30,32 +49,59 @@ public class Api extends WebSocketClient {
     public void onOpen(ServerHandshake data) {
         this.doubleCheck();
         if (MinecraftClient.getInstance().player == null) return;
-        this.send("auth", Map.of("uuid", MinecraftClient.getInstance().player.getUuid()));
+        this.command(Command.AUTH, Map.of("uuid", MinecraftClient.getInstance().player.getUuid()));
     }
 
     @Override
-    public void onMessage(String message) {
-        String[] parts = message.split(" ", 2);
+    public void onMessage(String raw) {
+        String[] parts = raw.split(" ", 3);
 
-        String command = parts.length > 0 ? parts[0] : "";
-        String rawArgs = parts.length > 1 ? parts[1] : null;
+        String rawCommand = parts.length > 0 ? parts[0] : "";
+        String rawSyncId = parts.length > 1 ? parts[1] : "";
+        String rawArgs = parts.length > 2 ? parts[2] : null;
 
-        switch (command) {
-            case "authenticated" -> this.authenticated(rawArgs);
-            default -> {
-                Mod.LOGGER.warn("Unknown websocket command: {} {}", command, rawArgs);
+        Command command = Arrays.stream(Command.values()).filter(msg -> msg.raw.equals(rawCommand)).findFirst().orElse(null);
+
+        Integer syncId = null;
+        try {
+            syncId = rawSyncId != null && !rawSyncId.equals("null") ? Integer.parseInt(rawSyncId) : null;
+        } catch (NumberFormatException exception) {
+            Mod.LOGGER.warn("Invalid sync ID received: {}", rawSyncId);
+        }
+
+        if (syncId != null) {
+            CompletableFuture<String> responseFuture = this.pendingResponses.remove(syncId);
+            if (responseFuture != null) {
+                responseFuture.complete(rawArgs);
+                return;
             }
         }
-    }
 
-    public void authenticated(String rawArgs) {
-        // Parse the response
-        this.data = this.gson.fromJson(rawArgs, Data.class);
-        this.doubleCheck();
+        // Handle regular commands
+        switch (command != null ? command : Command.UNKNOWN) {
+            case AUTH -> {
+                this.data = this.gson.fromJson(rawArgs, Data.class);
+                this.doubleCheck();
 
-        // Add a reference to the shop
-        for (Container container : this.data.containers.values()) {
-            container.loadShop(this.data.shops);
+                for (Container container : this.data.containers.values()) container.loadShop(this.data.shops);
+            }
+
+            case UPDATE_CONTAINER -> {
+                Container container = this.gson.fromJson(rawArgs, Container.class);
+                container.loadShop(this.data.shops);
+                this.data.containers.put(this.formatId(container.location), container);
+                this.mod.scanner().fullScan();
+            }
+
+            case DELETE_CONTAINER -> {
+                Vector3i location = this.gson.fromJson(rawArgs, Vector3i.class);
+                this.data.containers.remove(this.formatId(location));
+                this.mod.scanner().fullScan();
+            }
+
+            default -> {
+                Mod.LOGGER.warn("Unknown websocket command: {} {} {}", command, syncId, rawArgs);
+            }
         }
     }
 
@@ -72,6 +118,8 @@ public class Api extends WebSocketClient {
     @Override
     public void onClose(int code, String reason, boolean remote) {
         System.out.println("Closed with exit code " + code + " additional info: " + reason);
+        this.data = null;
+        // Todo (notgeri): ^
     }
 
     @Override
@@ -79,14 +127,19 @@ public class Api extends WebSocketClient {
         System.err.println("An error occurred:" + exception);
     }
 
-    public void send(String message, Object data) {
-        this.send(message + " " + this.gson.toJson(data));
-    }
-
-    @Override
-    public void close() {
-        this.data = null;
-        super.close();
+    /**
+     * Send a websocket command
+     *
+     * @param command The command to send
+     * @param data    The data to serialise as JSON along the command
+     * @return The future to track this sync ID. Once resolved, it will give the raw string data
+     */
+    public CompletableFuture<String> command(Command command, Object data) {
+        this.syncId++;
+        CompletableFuture<String> responseFuture = new CompletableFuture<>();
+        this.pendingResponses.put(this.syncId, responseFuture);
+        this.send(command.raw + " " + this.syncId + " " + this.gson.toJson(data));
+        return responseFuture;
     }
 
     /**
@@ -96,41 +149,47 @@ public class Api extends WebSocketClient {
      * @return The updated container
      */
     public CompletableFuture<Container> saveContainer(Container container) {
-        return CompletableFuture.supplyAsync(() -> {
-/*            try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
-                    .post(RequestBody.create(gson.toJson(container).getBytes()))
-                    .build()
-            ).execute()) {
-
-                Container newData = this.gson.fromJson(response.body().string(), Container.class);
-                newData.loadShop(this.data.shops);
-                this.data.containers.put(this.formatId(newData.location), newData);
-                return newData;
-
-            } catch (IOException exception) {
-                throw new RuntimeException("Container save failed", exception);
-            }*/
-            return null;
+        CompletableFuture<Container> future = new CompletableFuture<>();
+        CompletableFuture.runAsync(() -> {
+            this.command(Command.UPDATE_CONTAINER, container)
+                    .orTimeout(10, TimeUnit.SECONDS)
+                    .thenAccept(response -> {
+                        Container newData = this.gson.fromJson(response, Container.class);
+                        newData.loadShop(this.data.shops);
+                        this.data.containers.put(this.formatId(newData.location), newData);
+                        future.complete(newData);
+                    })
+                    .exceptionally(e -> {
+                        Mod.LOGGER.error("Error or timeout occurred while updating container", e);
+                        future.completeExceptionally(e);
+                        return null;
+                    });
         });
-    }
 
-    // Currently doing: set these up with the websocket ()
+        return future;
+    }
 
     /**
      * Delete a container
      */
     public CompletableFuture<Void> deleteContainer(Container container) {
-        return CompletableFuture.runAsync(() -> {
-     /*       try (Response response = client.newCall(new Request.Builder().url(BASE_URL + "/containers")
-                    .delete(RequestBody.create(gson.toJson(container).getBytes()))
-                    .build()
-            ).execute()) {
-                this.data.containers.remove(this.formatId(container.location));
-            } catch (IOException exception) {
-                throw new RuntimeException("Unable to delete container", exception);
-            }*/
-        }, this.executor);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture.runAsync(() -> {
+            this.command(Command.DELETE_CONTAINER, Map.of("location", container.location))
+                    .orTimeout(10, TimeUnit.SECONDS)
+                    .thenAccept(response -> {
+                        this.data.containers.remove(this.formatId(container.location));
+                        future.complete(null);
+                    })
+                    .exceptionally(e -> {
+                        Mod.LOGGER.error("Error or timeout occurred while deleting container", e);
+                        future.completeExceptionally(e);
+                        return null;
+                    });
+        });
+        return future;
     }
+
 
     /**
      * @return The list of available cached shops
@@ -187,7 +246,11 @@ public class Api extends WebSocketClient {
             String name,
             List<String> owners,
             Vector3i location
-    ) {}
+    ) {
+        public String name() {
+            return Objects.requireNonNullElse(this.name, "unknown shop");
+        }
+    }
 
     public enum Per {
         @SerializedName("piece") PIECE,

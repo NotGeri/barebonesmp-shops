@@ -6,6 +6,7 @@ import dev.geri.tracker.utils.Api;
 import io.wispforest.owo.ui.component.ButtonComponent;
 import io.wispforest.owo.ui.container.FlowLayout;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
@@ -31,9 +32,20 @@ public class UntrackedScreen extends CustomScreen {
                     this.mod.scanner().refresh(pos);
                 });
             } else {
-                super.close();
+                this.close();
             }
         });
+    }
+
+    @Override
+    public void close() {
+        if (this.mc.player == null) return;
+
+        // Send the packet to tell the server we can close the original container
+        this.mc.player.networkHandler.sendPacket(new CloseHandledScreenC2SPacket(this.interaction.syncId()));
+
+        // Actually close it
+        super.close();
     }
 
 }

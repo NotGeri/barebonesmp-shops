@@ -23,6 +23,7 @@ public class Scanner {
     private final MinecraftClient mc = MinecraftClient.getInstance();
     private final Mod mod = Mod.getInstance();
 
+    private boolean enabled;
     public RenderUtils.Group chests;
     public RenderUtils.Group barrels;
     public RenderUtils.Group shulkerBoxes;
@@ -40,6 +41,7 @@ public class Scanner {
      * Handle scanning for specific tile entities
      */
     public void fullScan() {
+        if (!this.enabled) return;
 
         // Clear all existing groups
         this.allGroups.forEach(RenderUtils.Group::clear);
@@ -116,6 +118,7 @@ public class Scanner {
      * Enable scanning and run a full scan
      */
     public void enable() {
+        this.enabled = true;
         this.fullScan();
         RenderUtils.Renderer.prepareBuffers();
     }
@@ -124,6 +127,7 @@ public class Scanner {
      * Disable and hide scanning
      */
     public void disable() {
+        this.enabled = false;
         this.allGroups.forEach(RenderUtils.Group::clear);
         RenderUtils.Renderer.closeBuffers();
     }
@@ -133,6 +137,8 @@ public class Scanner {
      * and then resetting everything to how it was
      */
     public void onRender(MatrixStack matrixStack) {
+        if (!this.enabled) return;
+
         // GL sets
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
