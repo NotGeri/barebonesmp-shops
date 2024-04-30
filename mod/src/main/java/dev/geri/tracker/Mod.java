@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
@@ -18,9 +19,14 @@ import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroups;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -55,10 +61,17 @@ public final class Mod implements ModInitializer {
     private BlockPos latestBreak;
     private BlockPos latestInteraction;
 
+    public static final Item WARNING_ITEM = new Item(new Item.Settings());
+
     @Override
     public void onInitialize() {
         if (instance != null) throw new RuntimeException("onInitialize() ran twice!");
         instance = this;
+
+        Registry.register(Registries.ITEM, new Identifier(Mod.ID, "warning"), WARNING_ITEM);
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(content -> {
+            content.add(WARNING_ITEM);
+        });
 
         this.scanner = new Scanner();
 

@@ -23,7 +23,6 @@ import org.joml.Vector3i;
 
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 public class EditScreen extends CustomScreen {
 
@@ -32,12 +31,12 @@ public class EditScreen extends CustomScreen {
     private final List<Map.Entry<Item, Integer>> items;
     private Api.Container container;
 
-    private final ArrayList<SmallCheckboxComponent> itemCheckboxes = new ArrayList<>();
+    // Keep track of certain UI elements values
+    private final ArrayList<ToggleableSmallCheckBox> itemCheckboxes = new ArrayList<>();
     private final HashMap<Api.Per, ToggleableSmallCheckBox> perCheckBoxes = new HashMap<>();
-
     private LabelComponent selectedShop;
+    private ItemComponent customItem;
     private ButtonComponent save;
-    private ItemStack customItemValue;
 
     public EditScreen(InventoryInteraction interaction) {
         super(FlowLayout.class, DataSource.asset(new Identifier(Mod.ID, "edit")));
@@ -68,18 +67,16 @@ public class EditScreen extends CustomScreen {
         LabelComponent managing = rootComponent.childById(LabelComponent.class, "managing");
         managing.text(Text.translatable("text.tracker.managing", this.pos.getX(), this.pos.getY(), this.pos.getZ()));
 
-        // Handle building the item container
-        GridLayout itemContainer = rootComponent.childById(GridLayout.class, "item-container");
-        this.buildItemContainer(itemContainer);
-
-        // Handle populating the shop list Todo (notgeri):
+        // Handle tracking and switching to the shop selector screen
+        this.selectedShop = rootComponent.childById(LabelComponent.class, "selected-shop");
         ButtonComponent shopSelector = rootComponent.childById(ButtonComponent.class, "shop-selector");
         shopSelector.onPress(press -> {
             this.mc.setScreen(new ShopSelectorScreens(this, this.container));
         });
 
-        // FlowLayout shopList = rootComponent.childById(FlowLayout.class, "shop-container");
-        this.selectedShop = rootComponent.childById(LabelComponent.class, "selected-shop");
+        // Handle building the item container
+        GridLayout itemContainer = rootComponent.childById(GridLayout.class, "item-container");
+        this.buildItemContainer(itemContainer);
 
         // Handle updating the summary
         LabelComponent summary = rootComponent.childById(LabelComponent.class, "summary");
@@ -94,6 +91,21 @@ public class EditScreen extends CustomScreen {
             this.close();
             this.mod.api().saveContainer(this.container).thenRun(() -> {
                 this.mod.scanner().refresh(this.pos);
+            });
+        });
+
+        // Handle the price/amount checkboxes
+        TextBoxComponent price = rootComponent.childById(TextBoxComponent.class, "price");
+        TextBoxComponent amount = rootComponent.childById(TextBoxComponent.class, "amount");
+
+        List.of(price, amount).forEach(numberTextBox -> {
+            numberTextBox.onChanged().subscribe((change) -> {
+                // Ensure all characters are digits
+                String numericText = change.replaceAll("\\D", "");
+                if (!numericText.equals(change)) numberTextBox.setText(numericText);
+
+                // Recalculate the save button
+                this.recalculateSaveButton();
             });
         });
 
@@ -116,50 +128,31 @@ public class EditScreen extends CustomScreen {
         this.perCheckBoxes.forEach((type, checkbox) -> {
             checkbox.onChanged().subscribe(checked -> {
                 this.recalculateSaveButton();
+                if (!checked) return;
 
-                if (checked) {
-                    // Ensure the last checkbox can't be unchecked
-                    checkbox.enabled(false);
+                // Ensure the last checkbox can't be unchecked
+                checkbox.enabled(false);
 
-                    // Ensure other checkboxes are unchecked
-                    this.perCheckBoxes.values().forEach(c -> {
-                        if (c != checkbox) {
-                            c.checked(false);
-                            c.enabled(true);
-                        }
-                    });
-                }
+                // Ensure other checkboxes are unchecked
+                this.perCheckBoxes.values().forEach(c -> {
+                    if (c != checkbox) {
+                        c.checked(false);
+                        c.enabled(true);
+                    }
+                });
             });
         });
 
-        TextBoxComponent price = rootComponent.childById(TextBoxComponent.class, "price");
-        price.onChanged().subscribe((change) -> this.recalculateSaveButton());
-
-        TextBoxComponent amount = rootComponent.childById(TextBoxComponent.class, "amount");
-        amount.onChanged().subscribe((change) -> this.recalculateSaveButton());
-
+        // Handle loading the initial settings
         this.selectShop(this.container != null ? this.container.shop() : null);
-
-        // Handle setting all the values if the container is pulled from the API successfully
         if (this.container != null) {
             if (this.container.per() != null) this.perCheckBoxes.get(this.container.per()).checked(true);
             price.text(this.container.price() + "");
             amount.text(this.container.amount() + "");
         }
 
-        Supplier<Api.Per> getSelectedPer = () -> {
-            for (Map.Entry<Api.Per, ToggleableSmallCheckBox> entry : this.perCheckBoxes.entrySet()) {
-                Api.Per type = entry.getKey();
-                SmallCheckboxComponent checkbox = entry.getValue();
-                if (checkbox.checked()) {
-                    return type;
-                }
-            }
-            return null;
-        };
-
-        // Default to some values
-        if (getSelectedPer.get() == null) this.perCheckBoxes.get(Api.Per.STACK).checked(true);
+        // Set some defaults for missing values
+        if (this.getSelectedPer() == null) this.perCheckBoxes.get(Api.Per.STACK).checked(true);
         if (price.getText().isEmpty()) price.text("0");
         if (amount.getText().isEmpty()) amount.text("0");
 
@@ -171,7 +164,7 @@ public class EditScreen extends CustomScreen {
             this.container.setLocation(new Vector3i(this.pos.getX(), this.pos.getY(), this.pos.getZ()));
             this.container.setPrice(Integer.parseInt(price.getText())); // Todo (notgeri):
             this.container.setAmount(Integer.parseInt(amount.getText())); // Todo (notgeri):
-            this.container.setPer(getSelectedPer.get());
+            this.container.setPer(this.getSelectedPer());
             this.close();
 
             Mod.getInstance().api().saveContainer(container).thenAccept(container -> {
@@ -181,7 +174,25 @@ public class EditScreen extends CustomScreen {
         });
     }
 
-    private GridLayout buildItemContainer(GridLayout itemContainer) {
+    /**
+     * Get the selected per checkbox's value
+     */
+    private Api.Per getSelectedPer() {
+        for (Map.Entry<Api.Per, ToggleableSmallCheckBox> entry : this.perCheckBoxes.entrySet()) {
+            Api.Per type = entry.getKey();
+            SmallCheckboxComponent checkbox = entry.getValue();
+            if (checkbox.checked()) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Build the item container with the custom option and
+     * all the available container items
+     */
+    private void buildItemContainer(GridLayout itemContainer) {
 
         // Make sure if one checkbox is checked, the rest are unchecked
         this.itemCheckboxes.clear();
@@ -197,14 +208,14 @@ public class EditScreen extends CustomScreen {
         int row = 0;
 
         // Custom item checkbox
-        SmallCheckboxComponent customItemCheckbox = Components.smallCheckbox(Text.empty());
+        ToggleableSmallCheckBox customItemCheckbox = new ToggleableSmallCheckBox();
         this.itemCheckboxes.add(customItemCheckbox);
         customItemCheckbox.onChanged().subscribe(checked -> onCheckbox.accept(customItemCheckbox, checked));
         itemContainer.child(customItemCheckbox, row, 0);
 
         // Add the item preview
-        ItemComponent customItem = Components.item(Items.APPLE.getDefaultStack());
-        itemContainer.child(customItem, row, 1);
+        this.customItem = Components.item(Items.APPLE.getDefaultStack());
+        itemContainer.child(this.customItem, row, 1);
 
         FlowLayout textBoxes = Containers.horizontalFlow(Sizing.content(), Sizing.content());
         itemContainer.child(textBoxes.margins(Insets.left(5)), row, 2);
@@ -219,26 +230,34 @@ public class EditScreen extends CustomScreen {
         textBoxes.child(customItemName.sizing(Sizing.fixed(70), Sizing.fixed(15)));
 
         Runnable parseCustomItem = () -> {
-            String rawId = rawCustomItem.getText();
+            // Remove the namespace
+            String rawId = rawCustomItem.getText().toLowerCase();
             if (rawId.startsWith("minecraft:")) {
                 rawId = rawId.substring("minecraft:".length());
-                rawCustomItem.text(rawId);
             }
 
-            // Todo (notgeri): filer non a-z0-9/.-_
+            // Strip all invalid characters
+            String stripped = rawId.replaceAll("[^[a-z0-9]/-_.]", "");
 
-            Identifier id = new Identifier("minecraft:" + rawId);
+            // Parse it as a registry ID
+            Identifier id = new Identifier("minecraft:" + stripped);
+            rawCustomItem.text(id.getPath());
+
+            // Attempt to get the item
             Optional<Item> parse = Registries.ITEM.getOrEmpty(id);
 
             // If it's not valid, make sure it can't be saved
-            if (parse.isEmpty()) {
-                customItemCheckbox.checked(false);
+            if (parse.isEmpty()) { // Currently doing: continue hooking this up ()
+                Text text = Text.translatable("text.tracker.invalid-item-id");
+                this.customItem.stack(Mod.WARNING_ITEM.getDefaultStack()).tooltip(text);
+                customItemCheckbox.enabled(false).checked(false).tooltip(text);
                 this.save.active(false);
-                return;
+            } else {
+                this.customItem.stack(parse.get().getDefaultStack()).tooltip(Text.empty());
+                customItemCheckbox.enabled(true).checked(true).tooltip(Text.empty());
             }
 
-            this.customItemValue = parse.get().getDefaultStack();
-            customItem.stack(this.customItemValue);
+            this.recalculateSaveButton();
         };
 
         // Recalculate if the focus is lost
@@ -258,7 +277,7 @@ public class EditScreen extends CustomScreen {
         for (Map.Entry<Item, Integer> entry : this.items) {
 
             // Add the checkbox
-            SmallCheckboxComponent checkbox = Components.smallCheckbox(Text.empty());
+            ToggleableSmallCheckBox checkbox = new ToggleableSmallCheckBox();
             this.itemCheckboxes.add(checkbox);
             checkbox.onChanged().subscribe(checked -> onCheckbox.accept(checkbox, checked));
             itemContainer.child(checkbox, row, 0);
@@ -279,7 +298,6 @@ public class EditScreen extends CustomScreen {
             row++;
         }
 
-        return itemContainer;
     }
 
     /**
@@ -298,6 +316,19 @@ public class EditScreen extends CustomScreen {
         this.save.active(valid);
     }
 
+    /**
+     * Select a specific shop for this container
+     * This will not save the choice yet
+     */
+    public void selectShop(Api.Shop shop) {
+        if (shop != null) {
+            if (this.container == null) this.container = new Api.Container();
+            this.container.setShop(shop);
+        }
+        this.selectedShop.text(this.container != null && this.container.shop() != null ? Text.literal(this.container.shop().name()) : Text.translatable("text.tracker.no-shop-selected"));
+        this.recalculateSaveButton();
+    }
+
     @Override
     public void close() {
         if (this.mc.player == null) return;
@@ -307,21 +338,6 @@ public class EditScreen extends CustomScreen {
 
         // Actually close it
         super.close();
-    }
-
-    /**
-     * Select a specific shop for this container
-     * This will not save the choice yet
-     *
-     * @param shop
-     */
-    public void selectShop(Api.Shop shop) {
-        if (shop != null) {
-            if (this.container == null) this.container = new Api.Container();
-            this.container.setShop(shop);
-        }
-        this.selectedShop.text(this.container != null && this.container.shop() != null ? Text.literal(this.container.shop().name()) : Text.translatable("text.tracker.no-shop-selected"));
-        this.recalculateSaveButton();
     }
 
 }

@@ -1,10 +1,30 @@
 {
   "category.tracker.main": "Shop Tracker",
   "key.tracker.edit-mode": "Enter Edit Mode",
-  "text.tracker.edit-mode-enabled": "Tracker edit mode §aON",
-  "text.tracker.edit-mode-disabled": "Tracker edit mode §cOFF",
-  "text.tracker.entered-spawn": "§7Entering shopping area!",
-  "text.tracker.left-spawn": "§7Leaving shopping area!",
+  "text.tracker.edit-mode-enabled": [
+    {
+      "text": "Tracker edit mode"
+    },
+    {
+      "text": "ON",
+      "color": "green"
+    }
+  ],
+  "text.tracker.edit-mode-disabled": [
+    {
+      "text": "Tracker edit mode"
+    },
+    {
+      "text": "OFF",
+      "color": "red"
+    }
+  ],
+  "text.tracker.invalid-item-id": [
+    {
+      "text": "Invalid item ID provided!",
+      "color": "red"
+    }
+  ],
   "text.tracker.managing": "Managing Container: X: %s, Y: %s, Z: %s",
   "text.tracker.summary": "Someone sells X items for X diamonds at %s %s %s",
   "text.tracker.no-shop-selected": "No shop selected!",
