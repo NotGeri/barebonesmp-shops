@@ -3,7 +3,7 @@
   "key.tracker.edit-mode": "Enter Edit Mode",
   "text.tracker.edit-mode-enabled": [
     {
-      "text": "Tracker edit mode"
+      "text": "Tracker edit mode "
     },
     {
       "text": "ON",
@@ -12,7 +12,7 @@
   ],
   "text.tracker.edit-mode-disabled": [
     {
-      "text": "Tracker edit mode"
+      "text": "Tracker edit mode "
     },
     {
       "text": "OFF",

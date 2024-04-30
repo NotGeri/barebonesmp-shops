@@ -11,17 +11,13 @@ base {
 }
 
 repositories {
+    flatDir { dirs 'libs' }
     maven { url 'https://maven.wispforest.io' }
     maven { url "https://www.cursemaven.com" }
     maven {
         name = "JourneyMap (Public)"
         url = "https://jm.gserv.me/repository/maven-public/"
     }
-}
-
-configurations.all {
-    // Check for snapshots more frequently than Gradle's default of 1 day. 0 = every build.
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
 dependencies {
@@ -43,6 +39,9 @@ dependencies {
     // JourneyMap API for waypoints
     modCompileOnlyApi group: 'info.journeymap', name: 'journeymap-api', version: project.journeymap_api_version, changing: true
     modCompileOnlyApi "curse.maven:journeymap-${project.jm_project_id}:${project.jm_file_id}"
+
+    // Xaeros Minimap for waypoints
+    compileOnly name: 'Xaeros_Minimap_24.1.1_Fabric_1.20.4'
 
     // The UI library
     modImplementation "io.wispforest:owo-lib:${project.owo_version}"

@@ -3,6 +3,7 @@ package dev.geri.tracker;
 import dev.geri.tracker.utils.Api;
 import dev.geri.tracker.utils.Scanner;
 import dev.geri.tracker.vendor.WaypointCreationEvent;
+import dev.geri.tracker.vendor.XaerosMinimap;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -29,11 +30,13 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xaero.common.minimap.waypoints.Waypoint;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -63,16 +66,20 @@ public final class Mod implements ModInitializer {
 
     public static final Item WARNING_ITEM = new Item(new Item.Settings());
 
+    /*this.waypointsManager.createTemporaryWaypoints(defaultWorld, 0, 100, 0, true, 1);*/
+
     @Override
     public void onInitialize() {
         if (instance != null) throw new RuntimeException("onInitialize() ran twice!");
         instance = this;
 
+        // Load items
         Registry.register(Registries.ITEM, new Identifier(Mod.ID, "warning"), WARNING_ITEM);
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.BUILDING_BLOCKS).register(content -> {
             content.add(WARNING_ITEM);
         });
 
+        // Initialise the scanner
         this.scanner = new Scanner();
 
         // Register the hotkey
@@ -114,16 +121,19 @@ public final class Mod implements ModInitializer {
         // Listen for the hotkey
         ClientTickEvents.END_CLIENT_TICK.register(c -> {
             while (toggleKey.wasPressed()) {
-                try {
-                    if (!WaypointCreationEvent.EVENT.invoker().onCreateWaypoint(
+
+                for (WaypointCreationEvent.Colour colour : WaypointCreationEvent.Colour.values()) {
+                    WaypointCreationEvent.EVENT.invoker().onCreateWaypoint(
                             MinecraftClient.getInstance().player.getWorld(),
-                            MinecraftClient.getInstance().player.getBlockPos(),
-                            "Test",
-                            "test"
-                    )) this.mc.inGameHud.setOverlayMessage(Text.literal("REEEEEEEEE"), false);
-                } catch (Exception e) {
-                    e.printStackTrace();
+                            MinecraftClient.getInstance().player.getBlockPos().offset(Direction.EAST, colour.xaerosMinimap),
+                            "Test " + colour.xaerosMinimap,
+                            "test " + colour.xaerosMinimap,
+                            colour
+                    );
                 }
+
+                // Todo (notgeri):
+
 
                 if (!this.isOnServer) {
                     this.mc.inGameHud.setOverlayMessage(Text.translatable("text.tracker.unsupported-server"), false);
@@ -147,6 +157,16 @@ public final class Mod implements ModInitializer {
             this.latestInteraction = hitResult.getBlockPos();
             return ActionResult.PASS;
         });
+
+        // Initialise any third party dependencies
+        try {
+            Class.forName("xaero.minimap.XaeroMinimapFabric");
+            XaerosMinimap.init();
+            LOGGER.info("Xaero's Minimap support enabled!");
+        } catch (ClassNotFoundException ignored) {
+            LOGGER.info("No Xaero's Minimap instance found!");
+        }
+
     }
 
     /**

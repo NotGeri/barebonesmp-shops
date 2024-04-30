@@ -31,12 +31,18 @@ public class JourneyMap implements IClientPlugin {
 
     /**
      * Create a new JourneyMap waypoint
-     *
-     * @throws Exception In case it fails for any reason
      */
-    public boolean createWaypoint(World world, BlockPos pos, String id, String name) throws Exception {
+    public boolean createWaypoint(World world, BlockPos pos, String name, String description, WaypointCreationEvent.Colour colour) {
         if (this.api == null || !this.api.playerAccepts(Mod.ID, DisplayType.Waypoint)) return false;
-        this.api.show(new Waypoint(Mod.ID, id, name, world.getRegistryKey(), pos).setColor(0x00ffff));
+        try {
+            Waypoint waypoint = new Waypoint(Mod.ID, name, description, world.getRegistryKey(), pos);
+            waypoint.setPersistent(false);
+            waypoint.setColor(colour.journeyMap);
+            this.api.show(waypoint);
+        } catch (Exception exception) {
+            Mod.LOGGER.error("Unable to create JourneyMap waypoint: {}", exception.getMessage());
+            return false;
+        }
         return true;
     }
 
