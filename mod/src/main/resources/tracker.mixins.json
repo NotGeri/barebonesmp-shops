@@ -8,8 +8,9 @@
     "defaultRequire": 1
   },
   "client": [
-    "WorldMixin",
     "ClientPlayNetworkHandlerMixin",
-    "GameRendererMixin"
+    "GameRendererMixin",
+    "ClientPlayerInteractionManagerMixin",
+    "WorldMixin"
   ]
 }

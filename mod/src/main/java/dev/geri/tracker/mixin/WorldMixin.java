@@ -91,10 +91,14 @@ public abstract class WorldMixin {
 
         // Handle regular containers
         if (!(oldBlock.getBlock() instanceof ChestBlock) || !oldBlock.contains(ChestBlock.CHEST_TYPE) || oldBlock.get(ChestBlock.CHEST_TYPE) == ChestType.SINGLE) {
+
             // Check if it's a container and delete it
             Api.Container container = mod.api().getContainer(pos.getX(), pos.getY(), pos.getZ());
             if (container != null) {
-                mod.api().deleteContainer(container).thenRun(() -> mod.scanner().remove(pos));
+                // Ensure it was a block that the player recently broke
+                if (mod.latestBreak() == pos) {
+                    mod.api().deleteContainer(container).thenRun(() -> mod.scanner().remove(pos));
+                }
             } else {
                 mod.scanner().remove(pos);
             }

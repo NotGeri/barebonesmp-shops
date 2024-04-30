@@ -51,6 +51,8 @@ public final class Mod implements ModInitializer {
 
     private boolean isOnServer = false;
     private boolean enabled;
+
+    private BlockPos latestBreak;
     private BlockPos latestInteraction;
 
     @Override
@@ -198,8 +200,22 @@ public final class Mod implements ModInitializer {
         return this.enabled;
     }
 
+    /**
+     * Get the latest client interaction position
+     */
     public BlockPos latestInteraction() {
         return this.latestInteraction;
+    }
+
+    /**
+     * get the latest client block break position
+     */
+    public BlockPos latestBreak() {
+        return this.latestBreak;
+    }
+
+    public void latestBreak(BlockPos pos) {
+        this.latestBreak = pos;
     }
 
     /**
