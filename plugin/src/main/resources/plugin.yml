@@ -1,0 +1,4 @@
+name: plugin
+version: '${version}'
+main: dev.geri.shops.Shops
+api-version: '1.20'
