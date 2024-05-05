@@ -5,6 +5,7 @@ import dev.geri.shops.data.Container;
 import dev.geri.shops.data.Data;
 import dev.geri.shops.gui.GuiManager;
 import dev.geri.shops.http.Server;
+import dev.geri.shops.utils.Strings;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -33,8 +34,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 
-public final class Shops extends JavaPlugin implements Listener {
+public final class Shops extends JavaPlugin implements Listener, TabExecutor {
 
     public static final int MINUTE = 20 * 60;
     public static final Gson GSON = new Gson();
@@ -69,6 +71,14 @@ public final class Shops extends JavaPlugin implements Listener {
             throw new RuntimeException(exception);
         }
 
+        // Register the events we have
+        Bukkit.getPluginManager().registerEvents(this, this);
+        Bukkit.getPluginManager().registerEvents(this.guiManager, this);
+
+        // Register the commands
+        PluginCommand command = this.getCommand("shops");
+        if (command != null) command.setExecutor(this);
+
         // Save the data to disk if anything has changed
         this.getServer().getScheduler().runTaskTimer(this, () -> {
             if (!this.data.hasChanges) return;
@@ -84,6 +94,8 @@ public final class Shops extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        // Stop the HTTP server
+        this.server.stop();
 
         // Save the data
         this.getLogger().info("Saving data..");
@@ -215,5 +227,43 @@ public final class Shops extends JavaPlugin implements Listener {
         this.getLogger().info("%s deleted container %s %s %s".formatted(e.getPlayer().getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
     }
 
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (args.length == 0) {
+            if (!sender.hasPermission("shops.help")) {
+                sender.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.access-denied", "")));
+                return true;
+            }
+
+            sender.sendMessage(Shops.MINI_MESSAGE.deserialize(Strings.placeholders(
+                    this.config.getString("messages.help", ""),
+                    Map.of(
+                            "%shop_count%", this.data.shopCount(),
+                            "%container_count%", this.data.containerCount()
+                    ))
+            ));
+            return true;
+        }
+
+        switch (args[0]) {
+            case "reload" -> {
+                if (!sender.hasPermission("shops.reload")) {
+                    sender.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.access-denied", "")));
+                    return true;
+                }
+
+                this.saveDefaultConfig();
+                this.reloadConfig();
+                this.config = getConfig();
+                sender.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.reloaded", "")));
+            }
+
+            default -> {
+                sender.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.invalid-command", "")));
+            }
+        }
+
+        return true;
+    }
 
 }

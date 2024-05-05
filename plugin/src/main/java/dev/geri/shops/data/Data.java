@@ -95,4 +95,18 @@ public class Data {
         });
     }
 
+    /**
+     * @return The number of stored shops
+     */
+    public int shopCount() {
+        return this.shops.size();
+    }
+
+    /**
+     * @return The number of tracked containers
+     */
+    public int containerCount() {
+        return this.containers.size();
+    }
+
 }

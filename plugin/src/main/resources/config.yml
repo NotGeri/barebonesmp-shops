@@ -10,7 +10,18 @@ misc:
 
 # Various misc messages
 messages:
+  # This has special %container_count% and %shop_count% variables
   help: |
+    
+    <dark_aqua><bold>SHOP TRACKER</bold>
+    <gray>To ensure everyone can easily discover all the great shops the server has to offer, shops can be set up to be automatically tracked.
+    
+     <white>• <gray>Currently tracked shops: <dark_aqua>%shop_count%
+     <white>• <gray>Containers: <dark_aqua>%container_count%
+    
+    <white>➜ <gray>Check out the list and tutorial at <aqua><hover:show_text:'<gray>Open site'><click:open_url:https://shops.barebonesmp.com>shops.barebonesmp.com</click></aqua>
+  
+  reloaded: '<green>Reloaded!'
   access-denied: '<red>You do not have access to this command!'
   invalid-command: '<red>Invalid command!'
   not-a-book: '<red>You must use an <dark_red>unsigned <red>book as the key!'
