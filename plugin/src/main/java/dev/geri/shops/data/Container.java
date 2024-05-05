@@ -17,6 +17,9 @@ public class Container {
 
     public Container() {}
 
+    /**
+     * Deep clone a container
+     */
     public Container(Container container) {
         this.shopName = container.shopName;
         this.shop = container.shop != null ? new Shop(container.shop) : null;

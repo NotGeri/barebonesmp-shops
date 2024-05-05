@@ -2,6 +2,7 @@ package dev.geri.shops.data;
 
 import dev.geri.shops.Shops;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 
@@ -19,14 +20,22 @@ public class Shop {
 
     public Shop() {}
 
+    /**
+     * Deep clone a shop
+     */
     public Shop(Shop shop) {
         this.name = shop.name;
         this.owners = new ArrayList<>(shop.owners);
         this.description = shop.description;
     }
 
-    // Todo (notgeri):
+    /**
+     * Create a shop from a book item based on its content
+     *
+     * @return The shop or null if the book was invalid
+     */
     public static Shop fromRaw(ItemStack item) {
+        if (item.getType() != Material.WRITABLE_BOOK) return null;
         BookMeta meta = (BookMeta) item.getItemMeta();
         StringBuilder sb = new StringBuilder();
         for (Component page : meta.pages()) {
