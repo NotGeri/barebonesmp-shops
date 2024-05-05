@@ -44,6 +44,7 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
 
     private FileConfiguration config;
     private Data data = null;
+    private final Server server = new Server();
     private final GuiManager guiManager = new GuiManager(this);
 
     private final Path dataPath = Paths.get(this.getDataFolder().getAbsolutePath(), "data.json");
@@ -90,6 +91,12 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
             }
         }, 1, this.config.getLong("misc.save-frequency", 5) * MINUTE);
 
+        // Initialise the HTTP server
+        try {
+            this.server.start(this.data, this.config.getInt("api.port", 8000));
+        } catch (IOException exception) {
+            this.getLogger().severe("Unable to start HTTP API: " + exception.getMessage());
+        }
     }
 
     @Override
