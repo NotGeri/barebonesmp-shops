@@ -15,10 +15,10 @@ import java.util.HashMap;
 public class GuiManager implements Listener {
 
     private final HashMap<Inventory, EditGui> activeGuis = new HashMap<>();
-    private final Shops shops;
+    private final Shops plugin;
 
-    public GuiManager(Shops shops) {
-        this.shops = shops;
+    public GuiManager(Shops plugin) {
+        this.plugin = plugin;
     }
 
     /**
@@ -27,7 +27,7 @@ public class GuiManager implements Listener {
     public void openEditGui(Player player, Location location, Container container) {
 
         // Initialise the GUI
-        EditGui gui = new EditGui(this.shops, player, location, container);
+        EditGui gui = new EditGui(this.plugin, player, location, container);
 
         // Cache the inventory
         this.activeGuis.put(gui.inventory(), gui);

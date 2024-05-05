@@ -1,11 +1,9 @@
 package dev.geri.shops.data;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Data {
 
@@ -18,6 +16,21 @@ public class Data {
      */
     public String formatLocation(Location location) {
         return "%s:%s,%s,%s".formatted(location.getWorld() != null ? location.getWorld().getName() : null, location.getX(), location.getY(), location.getZ());
+    }
+
+    /**
+     * Parse a raw location as a Bukkit object
+     *
+     * @return The location or null if there are _any_ issues
+     */
+    public Location parseLocation(String location) {
+        try {
+            String[] split = location.split(":");
+            String[] coords = split[1].split(",");
+            return new Location(Bukkit.getWorld(split[0]), Double.parseDouble(coords[0]), Double.parseDouble(coords[1]), Double.parseDouble(coords[2]));
+        } catch (Exception exception) {
+            return null;
+        }
     }
 
     /**
@@ -96,17 +109,17 @@ public class Data {
     }
 
     /**
-     * @return The number of stored shops
+     * @return The raw list of shops
      */
-    public int shopCount() {
-        return this.shops.size();
+    public ArrayList<Shop> shops() {
+        return this.shops;
     }
 
     /**
-     * @return The number of tracked containers
+     * @return The raw list of containers
      */
-    public int containerCount() {
-        return this.containers.size();
+    public Map<String, Container> containers() {
+        return this.containers;
     }
 
 }

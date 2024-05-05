@@ -1,6 +1,7 @@
 package dev.geri.shops;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import dev.geri.shops.data.Container;
 import dev.geri.shops.data.Data;
 import dev.geri.shops.gui.GuiManager;
@@ -39,7 +40,7 @@ import java.util.Map;
 public final class Shops extends JavaPlugin implements Listener, TabExecutor {
 
     public static final int MINUTE = 20 * 60;
-    public static final Gson GSON = new Gson();
+    public static final Gson GSON = new GsonBuilder().serializeNulls().create();
     public static MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     private FileConfiguration config;
@@ -52,9 +53,7 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
     @Override
     public void onEnable() {
         // Ensure the data directory exists
-        if (!this.getDataFolder().mkdirs()) {
-            this.getLogger().severe("Failed to create data folder!");
-        }
+        this.getDataFolder().mkdirs();
 
         // Load the default config
         this.saveDefaultConfig();
@@ -92,11 +91,13 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         }, 1, this.config.getLong("misc.save-frequency", 5) * MINUTE);
 
         // Initialise the HTTP server
-        try {
-            this.server.start(this.data, this.config.getInt("api.port", 8000));
-        } catch (IOException exception) {
-            this.getLogger().severe("Unable to start HTTP API: " + exception.getMessage());
-        }
+        this.getServer().getScheduler().runTaskAsynchronously(this, () -> {
+            try {
+                this.server.start(this, this.config.getInt("api.port", 8000));
+            } catch (IOException exception) {
+                this.getLogger().severe("Unable to start HTTP API: " + exception.getMessage());
+            }
+        });
     }
 
     @Override
@@ -195,6 +196,8 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         // If it's a custom item, we can't track it
         if (container.customName() != null && !container.customName().isEmpty()) return;
 
+        // Todo (notgeri): add support for shulkers in other containers
+
         // Get how many of the item we have
         int newStock = 0;
         for (ItemStack item : e.getInventory()) {
@@ -245,8 +248,8 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
             sender.sendMessage(Shops.MINI_MESSAGE.deserialize(Strings.placeholders(
                     this.config.getString("messages.help", ""),
                     Map.of(
-                            "%shop_count%", this.data.shopCount(),
-                            "%container_count%", this.data.containerCount()
+                            "%shop_count%", this.data.shops().size(),
+                            "%container_count%", this.data.containers().size()
                     ))
             ));
             return true;
