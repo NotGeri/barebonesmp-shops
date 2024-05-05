@@ -191,13 +191,16 @@ public class EditGui {
             );
         }
 
+        // Default to 1
+        if (unsavedContainer.amount() < 1) this.unsavedContainer.setAmount(1);
+
         this.slots.put(22, new SlotHandler(selectedItem, (e) -> {
             ItemStack cursorItem = e.getCursor();
 
             // If they put air, we will adjust the amount
             if (cursorItem.getType().isAir()) {
                 int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isRightClick() ? 1 : -1);
-                if (newCount < 0) return;
+                if (newCount < 1) return;
                 this.unsavedContainer.setAmount(newCount);
                 this.recalculate();
                 return;
