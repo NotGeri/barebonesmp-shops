@@ -25,6 +25,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -196,13 +197,24 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         // If it's a custom item, we can't track it
         if (container.customName() != null && !container.customName().isEmpty()) return;
 
-        // Todo (notgeri): add support for shulkers in other containers
-
         // Get how many of the item we have
         int newStock = 0;
         for (ItemStack item : e.getInventory()) {
             if (item == null) continue;
-            if (item.getType() == container.material()) newStock += item.getAmount();
+            if (item.getType() == container.material()) {
+                newStock += item.getAmount();
+            }
+
+            // Check if it's a shulker and repeat with the items inside
+            if (item.getItemMeta() instanceof BlockStateMeta state) {
+                if (state.getBlockState() instanceof ShulkerBox shulker) {
+                    for (ItemStack i : shulker.getInventory()) {
+                        if (i.getType() == container.material()) {
+                            newStock += i.getAmount();
+                        }
+                    }
+                }
+            }
         }
 
         // Update the stock if necessary

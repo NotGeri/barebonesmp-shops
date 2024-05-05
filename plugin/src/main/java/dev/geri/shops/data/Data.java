@@ -63,14 +63,14 @@ public class Data {
         Container container = this.containers.get(key);
         if (container == null) return;
 
+        this.containers.remove(key);
+
         // If this was the last container for the shop,
         // untrack that as well
         List<Container> shopContainers = this.containers.values().stream().filter(c -> c.shopName() != null && c.shopName().equals(container.shopName())).toList();
         if (shopContainers.isEmpty()) {
             this.removeShop(container.shopName());
         }
-
-        this.containers.remove(key);
     }
 
     /**
