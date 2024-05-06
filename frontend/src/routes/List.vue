@@ -8,7 +8,6 @@ export type Asset = { display: string, path: string };
 const assets = index as Record<string, Asset>;
 
 const shops = ref<ShopProps[]>([]);
-const danglingContainers = ref<ContainerProps[]>([]);
 
 const input = ref();
 const query = ref<string>('');
@@ -20,22 +19,9 @@ const refetch = async () => {
     const data = await response.json() as { containers: ContainerProps[], shops: ShopProps[] };
     shops.value = data.shops;
 
-    for (const raw of data.containers) {
-        const shop = shops.value.find(shop => shop.name === raw.shopName);
-
-        const container = {
-            ...raw,
-            asset: raw.id ? assets[raw.id.replace('minecraft:', '')] : undefined,
-        };
-
-        // Ensure it has a valid name or id at least
-        if (!container.id && !container.customName) continue;
-
-        if (shop) {
-            if (!shop.containers) shop.containers = [];
-            shop.containers.push(container);
-        } else {
-            danglingContainers.value.push(container);
+    for (const shop of data.shops) {
+        for (const container of shop.containers) {
+            container.asset = assets[container.id.replace('minecraft:', '')];
         }
     }
 };
@@ -64,7 +50,7 @@ const filteredShops = computed((): ShopProps[] => {
 
     return shops.value.reduce<ShopProps[]>((acc, shop) => {
 
-        const matchingContainers = shop.containers?.filter(container =>
+        const matchingContainers = shop.containers.filter(container =>
             container.id?.toLowerCase().includes(lower) || container?.asset?.display?.toLowerCase().includes(lower),
         ) ?? [];
 
@@ -89,7 +75,8 @@ const filteredShops = computed((): ShopProps[] => {
         </p>
         <p>
             Learn how you can set up your shops
-            <router-link to="/tutorial">here</router-link>.
+            <router-link to="/tutorial">here</router-link>
+            .
         </p>
         <input class="text-black p-1.5 w-1/3 rounded" ref="input" v-model="query" placeholder="Search for items...">
         <div class="flex flex-row gap-1">

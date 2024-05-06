@@ -4,13 +4,17 @@ import com.sun.net.httpserver.HttpServer;
 import dev.geri.shops.Shops;
 import dev.geri.shops.data.Container;
 import dev.geri.shops.data.Data;
+import dev.geri.shops.data.Shop;
 import org.bukkit.Location;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Server {
 
@@ -33,14 +37,16 @@ public class Server {
             // We will be returning JSON
             exchange.getResponseHeaders().set("Content-Type", "application/json");
 
-            // Transform containers for the frontend
-            ArrayList<Map<String, Serializable>> containers = new ArrayList<>();
+            // Assuming Shops class has a way to get all shops with their details
+            Map<String, List<Map<String, Serializable>>> shopContainers = new LinkedHashMap<>();
+            List<Map<String, Serializable>> danglingContainers = new ArrayList<>();
+
             for (Map.Entry<String, Container> entry : data.containers().entrySet()) {
                 Container container = entry.getValue();
+                if (container.material() == null) continue; // Skip containers without material
 
                 Map<String, Serializable> formatted = new LinkedHashMap<>();
-                formatted.put("id", container.material() != null ? container.material().getKey().toString() : null);
-                formatted.put("shopName", container.shopName());
+                formatted.put("id", container.material().getKey().toString());
                 formatted.put("customName", container.customName());
                 formatted.put("amount", container.amount());
                 formatted.put("per", container.per());
@@ -54,15 +60,31 @@ public class Server {
                     formatted.put("z", location.z());
                 }
 
-                containers.add(formatted);
+                String shopName = container.shopName();
+                if (shopName == null || shopName.isEmpty()) {
+                    danglingContainers.add(formatted);
+                } else {
+                    shopContainers.computeIfAbsent(shopName, k -> new ArrayList<>()).add(formatted);
+                }
             }
+
+            List<Map<String, Object>> shops = new ArrayList<>();
+            shopContainers.forEach((name, containers) -> {
+                Shop shop = data.getShop(name);
+                Map<String, Object> rawShop = new LinkedHashMap<>();
+                rawShop.put("name", shop.name());
+                rawShop.put("owners", shop.owners());
+                rawShop.put("description", shop.description());
+                rawShop.put("containers", containers);
+                shops.add(rawShop);
+            });
 
             // Return the data
             exchange.sendResponseHeaders(200, 0);
             OutputStream stream = exchange.getResponseBody();
             stream.write(Shops.GSON.toJson(Map.of(
-                    "shops", data.shops(),
-                    "containers", containers
+                    "shops", shops,
+                    "dangling_containers", danglingContainers
             )).getBytes());
             stream.close();
         });

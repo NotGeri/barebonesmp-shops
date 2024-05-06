@@ -6,7 +6,7 @@ export type ShopProps = {
     name: string
     owners: string[]
     description?: string
-    containers?: ContainerProps[]
+    containers: ContainerProps[]
 }
 
 const props = defineProps<ShopProps & { groupSimilar: boolean }>();

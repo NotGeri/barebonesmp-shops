@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Asset } from '@/App.vue';
+import type { Asset } from '@/routes/List.vue';
 import { computed } from 'vue';
 
 export type Per = 'piece' | 'stack' | 'shulker'
@@ -7,7 +7,7 @@ export type Per = 'piece' | 'stack' | 'shulker'
 export type ContainerProps = {
     shopName?: string
     // The namespace ID of the item or the icon
-    id?: string
+    id: string
     // The custom name if it's not specifically selling what the icon is
     customName?: string
     amount: number
