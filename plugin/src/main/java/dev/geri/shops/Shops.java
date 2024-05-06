@@ -23,6 +23,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
@@ -197,9 +198,15 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         // If it's a custom item, we can't track it
         if (container.customName() != null && !container.customName().isEmpty()) return;
 
-        // Get how many of the item we have
+        this.recalculateStock(location, container, e.getInventory());
+    }
+
+    /**
+     * Recalculate the stock of a container based on an inventory
+     */
+    public void recalculateStock(Location location, Container container, Inventory inventory) {
         int newStock = 0;
-        for (ItemStack item : e.getInventory()) {
+        for (ItemStack item : inventory) {
             if (item == null) continue;
             if (item.getType() == container.material()) {
                 newStock += item.getAmount();
@@ -209,6 +216,7 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
             if (item.getItemMeta() instanceof BlockStateMeta state) {
                 if (state.getBlockState() instanceof ShulkerBox shulker) {
                     for (ItemStack i : shulker.getInventory()) {
+                        if (i == null) continue;
                         if (i.getType() == container.material()) {
                             newStock += i.getAmount();
                         }

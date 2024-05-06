@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -27,7 +28,7 @@ import java.util.function.Consumer;
 
 public class EditGui {
 
-    private final Shops shops;
+    private final Shops plugin;
     private final FileConfiguration config;
     private final Player player;
     private final Location location;
@@ -37,9 +38,9 @@ public class EditGui {
     private final Inventory inventory;
     private final HashMap<Integer, SlotHandler> slots = new HashMap<>();
 
-    public EditGui(Shops shops, Player player, Location location, Container container) {
-        this.shops = shops;
-        this.config = shops.getConfig();
+    public EditGui(Shops plugin, Player player, Location location, Container container) {
+        this.plugin = plugin;
+        this.config = plugin.getConfig();
         this.player = player;
         this.location = location;
 
@@ -94,7 +95,7 @@ public class EditGui {
             if (itemMeta == null) continue;
 
             // Set the custom item tag, just in case
-            NamespacedKey key = NamespacedKey.fromString("is_gui", this.shops);
+            NamespacedKey key = NamespacedKey.fromString("is_gui", this.plugin);
             if (key == null) continue;
             itemMeta.getPersistentDataContainer().set(key, PersistentDataType.BOOLEAN, true);
             item.setItemMeta(itemMeta);
@@ -241,7 +242,7 @@ public class EditGui {
                 config.getString("edit-gui.untrack-button.name"),
                 config.getString("edit-gui.untrack-button.description")
         ), (e) -> {
-            this.shops.data().removeContainer(location);
+            this.plugin.data().removeContainer(location);
             this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-untracked", "")));
             player.closeInventory();
         }));
@@ -256,19 +257,19 @@ public class EditGui {
         ), (e) -> {
 
             // Save the shop first
-            if (unsavedContainer.shop() != null) this.shops.data().saveShop(unsavedContainer.shop());
+            if (unsavedContainer.shop() != null) this.plugin.data().saveShop(unsavedContainer.shop());
 
             // Update the container
-            this.shops.data().saveContainer(location, unsavedContainer);
+            this.plugin.data().saveContainer(location, unsavedContainer);
             this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-saved", "")));
-            this.player.closeInventory();
+            this.close();
         }));
     }
 
     /**
      * @return Get the map of placeholders for this edit GUI context
      */
-    private Map<String, Object> getPlaceholders () {
+    private Map<String, Object> getPlaceholders() {
         Shop shop = this.unsavedContainer.shop();
         return Map.of(
                 "%x%", location.getBlockX(),
@@ -321,6 +322,22 @@ public class EditGui {
         SlotHandler handler = this.slots.get(e.getSlot());
         if (handler != null && handler.action() != null) {
             handler.action().accept(e);
+        }
+    }
+
+    /**
+     * Recalculate the stock when they close the custom inventory
+     */
+    public void close() {
+        this.player.closeInventory();
+
+        // Attempt to recalculate the stock of the underlying container
+        Location location = this.plugin.getTrackableBlockLocation(this.location.getWorld().getBlockAt(this.location));
+        if (location == null) return;
+
+        Block block = location.getBlock();
+        if (block.getState() instanceof org.bukkit.block.Container c) {
+            this.plugin.recalculateStock(this.location, this.unsavedContainer, c.getInventory());
         }
     }
 
