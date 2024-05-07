@@ -152,6 +152,9 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         Player player = e.getPlayer();
         Block block = e.getClickedBlock();
 
+        // Ensure they have the permission
+        if (!player.hasPermission("shops.use")) return;
+
         // Make sure they are holding a book
         if (player.getInventory().getItemInMainHand().getType() != Material.WRITABLE_BOOK) return;
 

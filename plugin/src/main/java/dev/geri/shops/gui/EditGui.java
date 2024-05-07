@@ -151,7 +151,7 @@ public class EditGui {
             String raw = sb.toString();
 
             // Carve out the specific values
-            Pattern pattern = Pattern.compile("Name: (?<name>.+)\\s*(?:Owners: (?<owners>.+))?\\s*Description: (?<description>[\\s\\S]+)");
+            Pattern pattern = Pattern.compile("Name: (?<name>.+)\\s*(?:Owners: (?<owners>.+))?\\s*(?:Description: (?<description>[\\s\\S]+))?");
             Matcher matcher = pattern.matcher(raw);
             Shop shop = new Shop();
             if (matcher.find()) {
