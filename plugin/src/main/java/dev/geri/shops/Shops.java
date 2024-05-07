@@ -185,6 +185,7 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         // If it's a custom item, we can't track it
         if (container.customName() != null && !container.customName().isEmpty()) return;
 
+        this.getLogger().info("%s caused container %s %s %s to recalculate".formatted(e.getPlayer().getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
         this.recalculateStock(location, container, e.getInventory());
     }
 

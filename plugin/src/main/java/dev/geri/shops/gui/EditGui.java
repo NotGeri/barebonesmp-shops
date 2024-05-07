@@ -310,6 +310,7 @@ public class EditGui {
         ), (e) -> {
             this.plugin.data().removeContainer(location);
             this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-untracked", "")));
+            this.plugin.getLogger().info("%s untracked container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
             player.closeInventory();
         }));
     }
@@ -327,6 +328,7 @@ public class EditGui {
             // Update the container
             this.plugin.data().saveContainer(location, unsavedContainer);
             this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-saved", "")));
+            this.plugin.getLogger().info("%s saved container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
             this.close();
         }));
     }
