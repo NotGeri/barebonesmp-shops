@@ -1,0 +1,158 @@
+# A simple HTTP endpoint is hosted to allow
+# the frontend to query the current shop info
+api:
+  # The TCP port for the API
+  port: 8000
+
+misc:
+  # How frequently should we check if we should write the data to the disk?
+  save-frequency: 5 # (minutes)
+
+# Various misc messages
+messages:
+  # This has special %container_count% and %shop_count% variables
+  help: |
+    
+    <dark_aqua><bold>SHOP TRACKER</bold>
+    <gray>To ensure everyone can easily discover all the great shops the server has to offer, shops can be set up to be automatically tracked.
+    
+     <white>• <gray>Currently tracked shops: <dark_aqua>%shop_count%
+     <white>• <gray>Containers: <dark_aqua>%container_count%
+    
+    <white>➜ <gray>Check out the list and tutorial at <aqua><hover:show_text:'<gray>Open site'><click:open_url:https://shops.barebonesmp.com>shops.barebonesmp.com</click></aqua>
+  
+  reloaded: '<green>Reloaded!'
+  access-denied: '<red>You do not have access to this command!'
+  invalid-command: '<red>Invalid command!'
+  not-a-book: '<red>You must use an <dark_red>unsigned <red>book as the key!'
+  missing-name: '<red>Missing shop name!'
+  description-too-long: '<red>The shop description is too long!'
+  container-saved: '<green>Container saved!'
+  container-copied: '<green>Container copied!'
+  container-pasted: '<green>Container pasted!'
+  container-untracked: '<red>Container untracked!'
+  confirm-break: '<gold><bold>WARNING</bold><white>: <yellow>This container is tracked as a shop. If you are sure you want to delete it, break it while sneaking!'
+
+# The container editing GUI's settings
+# All of these messages can use the following placeholders:
+# - The coordinates of the container: %x% %y% %z%
+# - The details of the container: %price%, %amount%, %per%, %item%
+# - The details of the shop:  %shop_name%, %shop_description%, %shop_owners%
+edit-gui:
+  # The title of the container
+  title: '<dark_gray>Editing Container: <dark_aqua>%x%<dark_gray>, <dark_aqua>%y%<dark_gray>, <dark_aqua>%z%'
+  
+  # The shop button item when no shop is selected
+  shop-button-inactive:
+    name: '<!italic><red>Shop Key<white>: <red><bold>INACTIVE'
+    description: |
+      <gray>Link this container to a specific shop by placing
+      <gray>an unsigned book in this slot with the name of the
+      <gray>shop, a list of owners and an optional description
+      <gray>in the following format:
+      <gray>
+      <gray>Name<white>: <dark_gray>My Shop
+      <gray>Owners<white>: <dark_gray>Geri, John
+      <gray>Description<white>: <dark_gray>Lorem ipsum dolor sit amet,
+      <dark_gray>consectetur adipisicing elit, sed do eiusmod
+      <gray>
+      <gray>You can can use the <dark_gray>& <gray>symbol to colour the
+      <gray>name and description in the book!
+      <gray>
+      <gray>You can reuse the same book for all your containers.
+  
+  # The shop button when a shop is selected
+  shop-button-active:
+    name: '<!italic><red>Shop Key<white>: <green><bold>ACTIVE'
+    description: |
+      <gray>This container is currently linked to
+      <dark_gray>%shop_name%<gray>
+      <gray>
+      <gray>You can modify it by replacing the shop
+      <gray>key with a different book.
+  
+  # The per buttons
+  per-buttons:
+    piece:
+      name: '<!italic><red>Size: Piece'
+      description: |
+        <gray>Selling <dark_gray>X <gray>pieces of this item
+    stack:
+      name: '<!italic><dark_red>Size: Stack'
+      description: |
+        <gray>Selling <dark_gray>X <gray>stacks of this item
+    shulker:
+      name: '<!italic><light_purple>Size: Shulker'
+      description: |
+        <gray>Selling <dark_gray>X shulkers <gray>of this item.
+  
+  # The placeholder for when there isn't an item selected
+  item-placeholder:
+    name: '<!italic><red>Missing Item'
+    description: |
+      <gray>Place the desired item to track here.
+      <gray>If the item you wish to sell is more
+      <gray>abstract than an in-game item, rename
+      <gray>any item in an anvil with your service.
+  
+  item:
+    # The name of the item if they aren't using a custom name
+    not-custom-name: '<!italic><yellow>Selling the vanilla material'
+    # The description of the item no matter what
+    description: |
+      <gray>Amount: <dark_gray>%amount% %per%
+      <gray>
+      <dark_gray>Right click <gray>to increase the amount
+      <gray>and <dark_gray>left click <gray>to decrease it.
+      <gray>Use shift to step by <dark_gray>10<gray>.
+      <gray>
+      <gray>Place the desired item to track here.
+      <gray>
+      <gray>If the item you wish to sell is more
+      <gray>abstract than an in-game item, rename
+      <gray>any item in an anvil with your service.
+  
+  # The price button's title and description
+  price-button:
+    name: '<!italic><aqua>Selling for %price% diamonds'
+    description: |
+      <dark_gray>Right click <gray>to increase the price
+      <gray>and <dark_gray>left click<dark_gray> <gray>to decrease it.
+      <gray>Use shift to step by <dark_gray>10<gray>.
+  
+  copy-button:
+    name: '<!italic><light_purple>Copy Container'
+    description: |
+      <gray>Copy all the settings of this container
+      <gray>in its <dark_gray>current state</dark_gray>. Once copied,
+      <gray>you can paste the settings on other containers
+      <gray>by opening their editing menu.
+      <gray>
+      <gray>Shift click to clear your clipboard.
+    
+  paste-button:
+    name: '<!italic><green>Paste Container'
+    description: |
+      <gray>Paste the following settings:
+      <white> • <gray>Shop: <dark_gray>%paste_shop_name%
+      <white> • <gray>Selling: <dark_gray>%paste_amount% %paste_per% <gray>of <dark_gray>%paste_item%
+      <white> • <gray>Price: <aqua>%paste_price%<gray> diamonds
+      
+      <gray>This will NOT save the container,
+      <gray>just apply the settings for you.
+  
+  # The untrack button's name and description
+  untrack-button:
+    name: '<!italic><red>Untrack Container'
+    description: |
+      <gray>The container will no longer
+      <gray>be tracked for stock.
+  
+  # The save button's name and description
+  save-button:
+    name: '<!italic><green>Save Container'
+    description: |
+      <gray>Finalise the container as:
+      <white> • <gray>Shop: <dark_gray>%shop_name%
+      <white> • <gray>Selling: <dark_gray>%amount% %per% <gray>of <dark_gray>%item%
+      <white> • <gray>Price: <aqua>%price%<gray> diamonds

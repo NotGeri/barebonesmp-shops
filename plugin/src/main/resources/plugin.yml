@@ -1,0 +1,15 @@
+name: Shops
+version: '${version}'
+main: dev.geri.shops.Shops
+api-version: '1.13'
+commands:
+  shops:
+
+permissions:
+  shops.help:
+    description: Show the help message
+    default: op
+  
+  shops.reload:
+    description: Reload the plugin's config at runtime
+    default: op
