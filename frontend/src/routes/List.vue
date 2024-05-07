@@ -74,9 +74,7 @@ const filteredShops = computed((): ShopProps[] => {
             <a target="_blank" href="https://barebonesmp.com">BarebonesMP</a>.
         </p>
         <p>
-            Learn how you can set up your shops
-            <router-link to="/tutorial">here</router-link>
-            .
+            Learn how you can set up your shops <router-link to="/tutorial">here.</router-link>
         </p>
         <input class="text-black p-1.5 w-1/3 rounded" ref="input" v-model="query" placeholder="Search for items...">
         <div class="flex flex-row gap-1">
@@ -86,7 +84,7 @@ const filteredShops = computed((): ShopProps[] => {
     </div>
 
     <p v-if="loading" class="text-blue-400 text-center">Loading...</p>
-    <div v-else class="flex flex-col gap-3 max-w-6xl m-auto mb-10">
+    <div v-else class="flex flex-col gap-3 w-2/3 max-w-6xl m-auto mb-10">
         <Shop v-if="filteredShops.length > 0"
               v-for="(shop, index) in filteredShops" :key="index"
               v-bind="shop"

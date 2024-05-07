@@ -52,7 +52,9 @@ const itemNumberTooltip = computed((): string => {
 </script>
 
 <template>
-    <p :title="itemNumberTooltip">{{ availablePortions }}</p>
+    <p :title="customName ? 'Unable to track custom named item/service' : itemNumberTooltip">
+        {{ customName ? '-' :  availablePortions }}
+    </p>
     <div class="flex flex-row gap-3">
         <img alt="item icon" v-if="iconPath" class="w-8 h-8 object-cover" :src="iconPath">
         <h5>{{ customName ?? asset?.display ?? id }}</h5>

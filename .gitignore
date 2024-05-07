@@ -12,6 +12,7 @@ frontend/src/assets/index.json
 plugin/.gradle/
 plugin/build*/
 
+mod/
 mod/.gradle/
 mod/build*/
 mod/run/
