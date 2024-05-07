@@ -87,7 +87,7 @@ public class EditGui {
 
             ItemStack item;
             if (handler != null) {
-                item = handler.item();
+                item = handler.item;
             } else {  // No handler, fill it with a filler
                 item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
                 ItemMeta meta = item.getItemMeta();
@@ -128,11 +128,11 @@ public class EditGui {
         }
 
         // Add the shop book
-        this.slots.put(4, new SlotHandler(shopBook, (e) -> {
-            ItemStack item = e.getCursor();
+        this.slots.put(4, new SlotHandler(shopBook, ShiftClick.SPECIFIC.setMaterial(Material.WRITABLE_BOOK), (e) -> {
+            ItemStack item = e.getClick().isShiftClick() ? e.getCurrentItem() : e.getCursor();
 
             // If they put air, we will revert
-            if (item.getType().isAir()) {
+            if (item == null || item.getType().isAir()) {
                 this.unsavedContainer.setShop(null);
                 this.recalculate();
                 return;
@@ -226,11 +226,11 @@ public class EditGui {
         // Default to 1
         if (unsavedContainer.amount() < 1) this.unsavedContainer.setAmount(1);
 
-        this.slots.put(22, new SlotHandler(selectedItem, (e) -> {
-            ItemStack cursorItem = e.getCursor();
+        this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e) -> {
+            ItemStack cursorItem = e.getClick().isShiftClick() ? e.getCurrentItem() : e.getCursor();
 
             // If they put air, we will adjust the amount
-            if (cursorItem.getType().isAir()) {
+            if (cursorItem == null || cursorItem.getType().isAir()) {
                 int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isRightClick() ? 1 : -1);
                 if (newCount < 1) return;
                 this.unsavedContainer.setAmount(newCount);
@@ -404,15 +404,39 @@ public class EditGui {
      * Handle clicking in the GUI
      */
     public void onInventoryClick(InventoryClickEvent e) {
-        // Ensure they are clicking in the GUI and not in their inventory
+
+        // Handle shift clicking items in the GUI for speed
+        ItemStack item = e.getCurrentItem();
+        if (item != null && !item.getType().isAir() && e.isShiftClick()) {
+            // First see if there is one that accepts
+            // this specific material
+            for (SlotHandler handler : this.slots.values()) {
+                if (handler.shiftClick != ShiftClick.SPECIFIC) continue;
+                if (handler.shiftClick.material == item.getType()) {
+                    handler.action.accept(e);
+                    return;
+                }
+            }
+
+            // If not, find any that accept all other
+            for (SlotHandler handler : this.slots.values()) {
+                if (handler.shiftClick == ShiftClick.ANY) {
+                    handler.action.accept(e);
+                    return;
+                }
+            }
+            return;
+        }
+
+        // Otherwise, ensure they are clicking in the GUI and not in their inventory
         if (e.getClickedInventory() != e.getInventory()) return;
 
         // It doesn't matter what happens after this; we want to cancel the event
         e.setCancelled(true);
 
         SlotHandler handler = this.slots.get(e.getSlot());
-        if (handler != null && handler.action() != null) {
-            handler.action().accept(e);
+        if (handler != null && handler.action != null) {
+            handler.action.accept(e);
         }
     }
 
@@ -439,6 +463,34 @@ public class EditGui {
         return this.inventory;
     }
 
-    public record SlotHandler(ItemStack item, Consumer<InventoryClickEvent> action) {}
+    private enum ShiftClick {
+        ANY(),
+        SPECIFIC(),
+        NONE();
+
+        Material material;
+
+        public ShiftClick setMaterial(Material material) {
+            this.material = material;
+            return this;
+        }
+    }
+
+    private static final class SlotHandler {
+        public final ItemStack item;
+        public final Consumer<InventoryClickEvent> action;
+        public ShiftClick shiftClick;
+
+        public SlotHandler(ItemStack item, Consumer<InventoryClickEvent> action) {
+            this.item = item;
+            this.action = action;
+        }
+
+        public SlotHandler(ItemStack item, ShiftClick shiftClick, Consumer<InventoryClickEvent> action) {
+            this.item = item;
+            this.shiftClick = shiftClick;
+            this.action = action;
+        }
+    }
 
 }
