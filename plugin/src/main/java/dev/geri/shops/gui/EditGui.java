@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -26,6 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EditGui {
 
@@ -141,7 +144,35 @@ public class EditGui {
                 return;
             }
 
-            Shop shop = Shop.fromRaw(item);
+            // Get the book's raw description
+            BookMeta meta = (BookMeta) item.getItemMeta();
+            StringBuilder sb = new StringBuilder();
+            for (Component page : meta.pages()) sb.append(Shops.MINI_MESSAGE.serialize(page));
+            String raw = sb.toString();
+
+            // Carve out the specific values
+            Pattern pattern = Pattern.compile("Name: (?<name>.+)\\s*(?:Owners: (?<owners>.+))?\\s*Description: (?<description>[\\s\\S]+)");
+            Matcher matcher = pattern.matcher(raw);
+            Shop shop = new Shop();
+            if (matcher.find()) {
+                String name = matcher.group("name");
+                String ownersRaw = matcher.group("owners");
+                String descriptionRaw = matcher.group("description");
+                List<String> owners = ownersRaw != null ? Arrays.asList(ownersRaw.split(",\\s*")) : new ArrayList<>();
+                shop.setName(name).setOwners(owners).setDescription(descriptionRaw);
+            }
+
+            // Make sure we have a name at least
+            if (shop.name() == null || shop.name().isEmpty()) {
+                player.sendMessage(Shops.MINI_MESSAGE.deserialize(config.getString("messages.missing-name", "")));
+                return;
+            }
+
+            if (shop.description() != null && shop.description().length() > 100) {
+                player.sendMessage(Shops.MINI_MESSAGE.deserialize(config.getString("messages.description-too-long", "")));
+                return;
+            }
+
             this.unsavedContainer.setShop(shop);
             this.recalculate();
         }));

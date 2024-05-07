@@ -25,6 +25,8 @@ messages:
   access-denied: '<red>You do not have access to this command!'
   invalid-command: '<red>Invalid command!'
   not-a-book: '<red>You must use an <dark_red>unsigned <red>book as the key!'
+  missing-name: '<red>Missing shop name!'
+  description-too-long: '<red>The shop description is too long!'
   container-saved: '<green>Container saved!'
   container-copied: '<green>Container copied!'
   container-pasted: '<green>Container pasted!'
