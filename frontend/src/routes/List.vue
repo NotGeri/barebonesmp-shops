@@ -15,7 +15,7 @@ const groupSimilar = ref<boolean>(true);
 const loading = ref<boolean>(true);
 
 const refetch = async () => {
-    const response = await fetch('http://127.0.0.1:8000');
+    const response = await fetch(import.meta.env.VITE_BACKEND);
     const data = await response.json() as { containers: ContainerProps[], shops: ShopProps[] };
     shops.value = data.shops;
 
