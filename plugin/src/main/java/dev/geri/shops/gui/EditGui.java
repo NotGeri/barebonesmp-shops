@@ -24,6 +24,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class EditGui {
@@ -34,7 +35,7 @@ public class EditGui {
     private final Location location;
 
     @NotNull
-    private final Container unsavedContainer;
+    private Container unsavedContainer;
     private final Inventory inventory;
     private final HashMap<Integer, SlotHandler> slots = new HashMap<>();
 
@@ -72,6 +73,8 @@ public class EditGui {
         this.perButtons();
         this.item();
         this.priceButton();
+        this.copyButton();
+        this.pasteButton();
         this.untrackButton();
         this.saveButton();
 
@@ -161,10 +164,7 @@ public class EditGui {
         for (Map.Entry<Per, ItemStack> entry : perItems.entrySet()) {
             ItemStack item = entry.getValue();
             if (unsavedContainer.per() == entry.getKey()) {
-                ItemMeta meta = item.getItemMeta();
-                meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-                meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
-                item.setItemMeta(meta);
+                this.enchant(item);
             }
 
             this.slots.put(10 + perIndex * 9, new SlotHandler(item, (e) -> {
@@ -236,6 +236,41 @@ public class EditGui {
         }));
     }
 
+    private void copyButton() {
+        Container pendingCopy = this.plugin.data().getPendingCopy(this.player.getUniqueId());
+        ItemStack item = new ItemStack(Material.MAP);
+        if (pendingCopy != null) this.enchant(item);
+
+        this.slots.put(45, new SlotHandler(this.applyMeta(
+                item,
+                config.getString("edit-gui.copy-button.name"),
+                config.getString("edit-gui.copy-button.description")
+        ), (e) -> {
+            if (e.isShiftClick()) {
+                this.plugin.data().removePendingCopy(player.getUniqueId());
+            } else {
+                this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-copied", "")));
+                this.plugin.data().setPendingCopy(player.getUniqueId(), new Container(unsavedContainer));
+            }
+            this.recalculate();
+        }));
+    }
+
+    private void pasteButton() {
+        Container pendingCopy = this.plugin.data().getPendingCopy(this.player.getUniqueId());
+        if (pendingCopy == null) return;
+
+        this.slots.put(46, new SlotHandler(this.applyMeta(
+                new ItemStack(Material.FILLED_MAP),
+                config.getString("edit-gui.paste-button.name"),
+                config.getString("edit-gui.paste-button.description")
+        ), (e) -> {
+            this.unsavedContainer = pendingCopy;
+            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-pasted", "")));
+            this.recalculate();
+        }));
+    }
+
     private void untrackButton() {
         this.slots.put(48, new SlotHandler(this.applyMeta(
                 Heads.getPlayerHeadItem("beb588b21a6f98ad1ff4e085c552dcb050efc9cab427f46048f18fc803475f7"),
@@ -249,7 +284,6 @@ public class EditGui {
     }
 
     private void saveButton() {
-
         this.slots.put(50, new SlotHandler(this.applyMeta(
                 Heads.getPlayerHeadItem("a92e31ffb59c90ab08fc9dc1fe26802035a3a47c42fee63423bcdb4262ecb9b6"),
                 config.getString("edit-gui.save-button.name", ""),
@@ -270,28 +304,49 @@ public class EditGui {
      * @return Get the map of placeholders for this edit GUI context
      */
     private Map<String, Object> getPlaceholders() {
-        Shop shop = this.unsavedContainer.shop();
-        return Map.of(
-                "%x%", location.getBlockX(),
-                "%y%", location.getBlockY(),
-                "%z%", location.getBlockZ(),
 
-                "%price%", this.unsavedContainer.price(),
-                "%amount%", this.unsavedContainer.amount(),
-                "%per%", this.unsavedContainer.per() != null ? this.unsavedContainer.per().format(this.unsavedContainer.amount()) : "?",
-                "%item%", this.unsavedContainer.formattedName(),
+        HashMap<String, Object> placeholders = new HashMap<>() {{
+            this.put("%x%", location.getBlockX());
+            this.put("%y%", location.getBlockY());
+            this.put("%z%", location.getBlockZ());
+        }};
 
-                "%shop_name%", shop != null ? shop.name() : "?",
-                "%shop_description%", shop != null ? this.unsavedContainer.shop().name() : "?",
-                "%shop_owners%", shop != null && shop.owners() != null ? String.join(", ", this.unsavedContainer.shop().owners()) : "-"
-        );
+        BiConsumer<Container, String> applyContainerPlaceholders = (container, prefix) -> {
+            placeholders.put("%" + prefix + "price%", container != null ? container.price() : "?");
+            placeholders.put("%" + prefix + "amount%", container != null ? container.amount() : "");
+            placeholders.put("%" + prefix + "per%", container != null && container.per() != null ? container.per().format(container.amount()) : "?");
+            placeholders.put("%" + prefix + "item%", container != null ? container.formattedName() : "?");
+
+            Shop shop = container != null ? container.shop() : null;
+            placeholders.put("%" + prefix + "shop_name%", shop != null ? shop.name() : "?");
+            placeholders.put("%" + prefix + "shop_description%", shop != null ? shop.name() : "?");
+            placeholders.put("%" + prefix + "shop_owners%", shop != null && shop.owners() != null ? String.join(", ", shop.owners()) : "-");
+        };
+
+        // First add the container itself
+        applyContainerPlaceholders.accept(this.unsavedContainer, "");
+
+        // Then attempt to add the copied one
+        applyContainerPlaceholders.accept(this.plugin.data().getPendingCopy(this.player.getUniqueId()), "paste_");
+
+        return placeholders;
+    }
+
+    /**
+     * Add an enchant glint to a GUI item
+     */
+    private void enchant(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
+        item.setItemMeta(meta);
     }
 
     /**
      * Apply a name and description item meta to an item
      * This will also parse the available placeholders
      */
-    public ItemStack applyMeta(ItemStack item, String name, String description) {
+    private ItemStack applyMeta(ItemStack item, String name, String description) {
 
         Map<String, Object> placeholders = this.getPlaceholders();
 
@@ -306,6 +361,9 @@ public class EditGui {
         }
         meta.displayName(name != null ? Shops.MINI_MESSAGE.deserialize(Strings.placeholders(name, placeholders)) : Component.empty());
         item.setItemMeta(meta);
+
+        item.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS, ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES);
+
         return item;
     }
 

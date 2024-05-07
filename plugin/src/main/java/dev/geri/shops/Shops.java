@@ -23,6 +23,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -47,10 +48,10 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
 
     private FileConfiguration config;
     private Data data = null;
+    private final Path dataPath = Paths.get(this.getDataFolder().getAbsolutePath(), "data.json");
+
     private final Server server = new Server();
     private final GuiManager guiManager = new GuiManager(this);
-
-    private final Path dataPath = Paths.get(this.getDataFolder().getAbsolutePath(), "data.json");
 
     @Override
     public void onEnable() {
@@ -119,20 +120,6 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
     }
 
     /**
-     * @return Data util
-     */
-    public Data data() {
-        return data;
-    }
-
-    /**
-     * Save the data to disk
-     */
-    public void save() throws IOException {
-        Files.write(this.dataPath, List.of(Shops.GSON.toJson(this.data)), StandardCharsets.UTF_8);
-    }
-
-    /**
      * Get the location of a trackable block
      *
      * @param block The block to check
@@ -165,8 +152,8 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         Player player = e.getPlayer();
         Block block = e.getClickedBlock();
 
-        // Ensure they are using the right item
-        if (!e.getAction().isRightClick() || player.getInventory().getItemInMainHand().getType() != Material.TRIPWIRE_HOOK) return;
+        // Make sure they are holding a book
+        if (player.getInventory().getItemInMainHand().getType() != Material.WRITABLE_BOOK) return;
 
         // Ensure it's a block we can track
         Location location = this.getTrackableBlockLocation(block);
@@ -199,6 +186,15 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         if (container.customName() != null && !container.customName().isEmpty()) return;
 
         this.recalculateStock(location, container, e.getInventory());
+    }
+
+    /**
+     * Ensure we remove any pending copy actions
+     * when a player disconnects
+     */
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent e) {
+        this.data().removePendingCopy(e.getPlayer().getUniqueId());
     }
 
     /**
@@ -294,6 +290,20 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         }
 
         return true;
+    }
+
+    /**
+     * @return Data util
+     */
+    public Data data() {
+        return data;
+    }
+
+    /**
+     * Save the data to disk
+     */
+    public void save() throws IOException {
+        Files.write(this.dataPath, List.of(Shops.GSON.toJson(this.data)), StandardCharsets.UTF_8);
     }
 
 }

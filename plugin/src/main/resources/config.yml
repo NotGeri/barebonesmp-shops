@@ -26,6 +26,8 @@ messages:
   invalid-command: '<red>Invalid command!'
   not-a-book: '<red>You must use an <dark_red>unsigned <red>book as the key!'
   container-saved: '<green>Container saved!'
+  container-copied: '<green>Container copied!'
+  container-pasted: '<green>Container pasted!'
   container-untracked: '<red>Container untracked!'
   confirm-break: '<gold><bold>WARNING</bold><white>: <yellow>This container is tracked as a shop. If you are sure you want to delete it, break it while sneaking!'
 
@@ -115,6 +117,27 @@ edit-gui:
       <dark_gray>Right click <gray>to increase the price
       <gray>and <dark_gray>left click<dark_gray> <gray>to decrease it.
       <gray>Use shift to step by <dark_gray>10<gray>.
+  
+  copy-button:
+    name: '<!italic><light_purple>Copy Container'
+    description: |
+      <gray>Copy all the settings of this container
+      <gray>in its <dark_gray>current state</dark_gray>. Once copied,
+      <gray>you can paste the settings on other containers
+      <gray>by opening their editing menu.
+      <gray>
+      <gray>Shift click to clear your clipboard.
+    
+  paste-button:
+    name: '<!italic><green>Paste Container'
+    description: |
+      <gray>Paste the following settings:
+      <white> • <gray>Shop: <dark_gray>%paste_shop_name%
+      <white> • <gray>Selling: <dark_gray>%paste_amount% %paste_per% <gray>of <dark_gray>%paste_item%
+      <white> • <gray>Price: <aqua>%paste_price%<gray> diamonds
+      
+      <gray>This will NOT save the container,
+      <gray>just apply the settings for you.
   
   # The untrack button's name and description
   untrack-button:

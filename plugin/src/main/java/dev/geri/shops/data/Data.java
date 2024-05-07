@@ -9,7 +9,9 @@ public class Data {
 
     private ArrayList<Shop> shops;
     private HashMap<String, Container> containers;
+
     public transient boolean hasChanges = false;
+    private transient final HashMap<UUID, Container> pendingCopies = new HashMap<>();
 
     /**
      * @return The string formatted location that we can use a sort of hash
@@ -120,6 +122,31 @@ public class Data {
      */
     public Map<String, Container> containers() {
         return this.containers;
+    }
+
+    /**
+     * Set a new copy action for a specific player
+     * @param playerUuid The player who is copying
+     * @param container The container that is being copied
+     */
+    public void setPendingCopy(UUID playerUuid, Container container) {
+        this.pendingCopies.put(playerUuid, container);
+    }
+
+    /**
+     * Get a pending copy action's container
+     * @param playerUuid The player who is copying
+     * @return The container or null if not found
+     */
+    public Container getPendingCopy(UUID playerUuid) {
+        return this.pendingCopies.get(playerUuid);
+    }
+
+    /**
+     * Remove the current copy action for a player
+     */
+    public void removePendingCopy(UUID playerUuid) {
+        this.pendingCopies.remove(playerUuid);
     }
 
 }
