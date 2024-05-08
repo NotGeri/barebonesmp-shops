@@ -407,7 +407,7 @@ public class EditGui {
 
         // Handle shift clicking items in the GUI for speed
         ItemStack item = e.getCurrentItem();
-        if (item != null && !item.getType().isAir() && e.isShiftClick()) {
+        if (item != null && !item.getType().isAir() && e.isShiftClick() && e.getClickedInventory() == player.getInventory()) {
             // First see if there is one that accepts
             // this specific material
             for (SlotHandler handler : this.slots.values()) {
