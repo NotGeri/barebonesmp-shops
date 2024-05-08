@@ -100,13 +100,15 @@ edit-gui:
     not-custom-name: '<!italic><yellow>Selling the vanilla material'
     # The description of the item no matter what
     description: |
+      <gray>Place the desired item to track here.
+      <gray><dark_gray>Middle click</dark_gray> to attempt to auto-select the
+      <gray>material with the most items in the container.
+      <gray>
       <gray>Amount: <dark_gray>%amount% %per%
       <gray>
       <dark_gray>Left click <gray>to increase the amount
       <gray>and <dark_gray>right click <gray>to decrease it.
       <gray>Use shift to step by <dark_gray>10<gray>.
-      <gray>
-      <gray>Place the desired item to track here.
       <gray>
       <gray>If the item you wish to sell is more
       <gray>abstract than an in-game item, rename

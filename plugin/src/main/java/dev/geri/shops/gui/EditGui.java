@@ -230,6 +230,28 @@ public class EditGui {
         this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e, isShiftClick) -> {
             ItemStack cursorItem = isShiftClick ? e.getCurrentItem() : e.getCursor();
 
+            // If they middle-click, attempt to get the item from the container
+            if (e.getClick() == ClickType.MIDDLE) {
+                Inventory containerInventory = this.getContainerInventory();
+                if (containerInventory == null) return;
+
+                // Calculate the material with the most items in the container
+                HashMap<Material, Integer> items = new HashMap<>();
+                for (ItemStack item : containerInventory.getContents()) {
+                    if (item != null) items.merge(item.getType(), item.getAmount(), Integer::sum);
+                }
+
+                items.entrySet()
+                        .stream()
+                        .max(Map.Entry.comparingByValue())
+                        .ifPresent(entry -> {
+                            if (entry.getKey().isAir()) return;
+                            this.unsavedContainer.setMaterial(entry.getKey());
+                            this.recalculate();
+                        });
+                return;
+            }
+
             // If they put air, we will adjust the amount
             if (cursorItem == null || cursorItem.getType().isAir()) {
                 int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isLeftClick() ? 1 : -1);
@@ -442,7 +464,7 @@ public class EditGui {
 
         // It doesn't matter what happens after this; we want to cancel the event
         e.setCancelled(true);
-        
+
         SlotHandler handler = this.slots.get(e.getSlot());
         if (handler != null && handler.action != null) {
             handler.action.accept(e, false);
@@ -461,13 +483,22 @@ public class EditGui {
             this.plugin.recalculateStock(this.location, this.unsavedContainer, containerInventory);
         }
     }
+
+    /**
+     * Get the inventory of the underlying physical container
+     *
+     * @return The inventory or null if invalid
+     */
+    private Inventory getContainerInventory() {
         Location location = this.plugin.getTrackableBlockLocation(this.location.getWorld().getBlockAt(this.location));
-        if (location == null) return;
+        if (location == null) return null;
 
         Block block = location.getBlock();
         if (block.getState() instanceof org.bukkit.block.Container c) {
-            this.plugin.recalculateStock(this.location, this.unsavedContainer, c.getInventory());
+            return c.getInventory();
         }
+
+        return null;
     }
 
     /**
