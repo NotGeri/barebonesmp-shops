@@ -128,8 +128,8 @@ public class EditGui {
         }
 
         // Add the shop book
-        this.slots.put(4, new SlotHandler(shopBook, ShiftClick.SPECIFIC.setMaterial(Material.WRITABLE_BOOK), (e) -> {
-            ItemStack item = e.getClick().isShiftClick() ? e.getCurrentItem() : e.getCursor();
+        this.slots.put(4, new SlotHandler(shopBook, ShiftClick.SPECIFIC.setMaterial(Material.WRITABLE_BOOK), (e, isShiftClick) -> {
+            ItemStack item = isShiftClick ? e.getCurrentItem() : e.getCursor();
 
             // If they put air, we will revert
             if (item == null || item.getType().isAir()) {
@@ -198,7 +198,7 @@ public class EditGui {
                 this.enchant(item);
             }
 
-            this.slots.put(10 + perIndex * 9, new SlotHandler(item, (e) -> {
+            this.slots.put(10 + perIndex * 9, new SlotHandler(item, (e, isShiftClick) -> {
                 this.unsavedContainer.setPer(entry.getKey());
                 this.recalculate();
             }));
@@ -226,8 +226,8 @@ public class EditGui {
         // Default to 1
         if (unsavedContainer.amount() < 1) this.unsavedContainer.setAmount(1);
 
-        this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e) -> {
-            ItemStack cursorItem = e.getClick().isShiftClick() ? e.getCurrentItem() : e.getCursor();
+        this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e, isShiftClick) -> {
+            ItemStack cursorItem = isShiftClick ? e.getCurrentItem() : e.getCursor();
 
             // If they put air, we will adjust the amount
             if (cursorItem == null || cursorItem.getType().isAir()) {
@@ -259,7 +259,7 @@ public class EditGui {
                 new ItemStack(Material.DIAMOND),
                 config.getString("edit-gui.price-button.name"),
                 config.getString("edit-gui.price-button.description")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
             int newPrice = this.unsavedContainer.price() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isLeftClick() ? 1 : -1);
             if (newPrice < 0) return;
             this.unsavedContainer.setPrice(newPrice);
@@ -276,7 +276,7 @@ public class EditGui {
                 item,
                 config.getString("edit-gui.copy-button.name"),
                 config.getString("edit-gui.copy-button.description")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
             if (e.isShiftClick()) {
                 this.plugin.data().removePendingCopy(player.getUniqueId());
             } else {
@@ -295,7 +295,7 @@ public class EditGui {
                 new ItemStack(Material.FILLED_MAP),
                 config.getString("edit-gui.paste-button.name"),
                 config.getString("edit-gui.paste-button.description")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
             this.unsavedContainer = pendingCopy;
             this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-pasted", "")));
             this.recalculate();
@@ -307,7 +307,7 @@ public class EditGui {
                 Heads.getPlayerHeadItem("beb588b21a6f98ad1ff4e085c552dcb050efc9cab427f46048f18fc803475f7"),
                 config.getString("edit-gui.untrack-button.name"),
                 config.getString("edit-gui.untrack-button.description")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
             this.plugin.data().removeContainer(location);
             this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-untracked", "")));
             this.plugin.getLogger().info("%s untracked container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
@@ -320,7 +320,7 @@ public class EditGui {
                 Heads.getPlayerHeadItem("a92e31ffb59c90ab08fc9dc1fe26802035a3a47c42fee63423bcdb4262ecb9b6"),
                 config.getString("edit-gui.save-button.name", ""),
                 config.getString("edit-gui.save-button.description", "")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
 
             // Save the shop first
             if (unsavedContainer.shop() != null) this.plugin.data().saveShop(unsavedContainer.shop());
@@ -405,6 +405,7 @@ public class EditGui {
      */
     public void onInventoryClick(InventoryClickEvent e) {
 
+
         // Handle shift clicking items in the GUI for speed
         ItemStack item = e.getCurrentItem();
         if (item != null && !item.getType().isAir() && e.isShiftClick() && e.getClickedInventory() == player.getInventory()) {
@@ -413,7 +414,7 @@ public class EditGui {
             for (SlotHandler handler : this.slots.values()) {
                 if (handler.shiftClick != ShiftClick.SPECIFIC) continue;
                 if (handler.shiftClick.material == item.getType()) {
-                    handler.action.accept(e);
+                    handler.action.accept(e, true);
                     return;
                 }
             }
@@ -421,7 +422,7 @@ public class EditGui {
             // If not, find any that accept all other
             for (SlotHandler handler : this.slots.values()) {
                 if (handler.shiftClick == ShiftClick.ANY) {
-                    handler.action.accept(e);
+                    handler.action.accept(e, true);
                     return;
                 }
             }
@@ -433,10 +434,10 @@ public class EditGui {
 
         // It doesn't matter what happens after this; we want to cancel the event
         e.setCancelled(true);
-
+        
         SlotHandler handler = this.slots.get(e.getSlot());
         if (handler != null && handler.action != null) {
-            handler.action.accept(e);
+            handler.action.accept(e, false);
         }
     }
 
@@ -478,15 +479,15 @@ public class EditGui {
 
     private static final class SlotHandler {
         public final ItemStack item;
-        public final Consumer<InventoryClickEvent> action;
+        public BiConsumer<InventoryClickEvent, Boolean> action;
         public ShiftClick shiftClick;
 
-        public SlotHandler(ItemStack item, Consumer<InventoryClickEvent> action) {
+        public SlotHandler(ItemStack item, BiConsumer<InventoryClickEvent, Boolean> action) {
             this.item = item;
             this.action = action;
         }
 
-        public SlotHandler(ItemStack item, ShiftClick shiftClick, Consumer<InventoryClickEvent> action) {
+        public SlotHandler(ItemStack item, ShiftClick shiftClick, BiConsumer<InventoryClickEvent, Boolean> action) {
             this.item = item;
             this.shiftClick = shiftClick;
             this.action = action;
