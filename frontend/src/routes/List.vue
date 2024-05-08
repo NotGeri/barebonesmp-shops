@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from 'vue';
 import { type ContainerProps } from '@/components/Container.vue';
 import Shop, { type ShopProps } from '@/components/Shop.vue';
 
-export type Asset = { display: string, path: string };
+export type Asset = { display: string, path: string, type: string };
 const assets = index as Record<string, Asset>;
 
 const shops = ref<ShopProps[]>([]);
