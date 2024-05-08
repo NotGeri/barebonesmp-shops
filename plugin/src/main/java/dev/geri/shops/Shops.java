@@ -155,6 +155,11 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
         // Ensure they have the permission
         if (!player.hasPermission("shops.use")) return;
 
+        // Make sure they aren't sneaking
+        // Since books are handled client-side, sneak
+        // clicking causes the book to flash for a moment
+        if (player.isSneaking()) return;
+
         // Make sure they are holding a book
         if (player.getInventory().getItemInMainHand().getType() != Material.WRITABLE_BOOK) return;
 
