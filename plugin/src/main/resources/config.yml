@@ -29,7 +29,7 @@ messages:
   description-too-long: '<red>The shop description is too long!'
   container-saved: '<green>Container saved!'
   container-copied: '<green>Container copied!'
-  container-pasted: '<green>Container pasted!'
+  container-pasted: '<green>Container pasted and saved!'
   container-untracked: '<red>Container untracked!'
   confirm-break: '<gold><bold>WARNING</bold><white>: <yellow>This container is tracked as a shop. If you are sure you want to delete it, break it while sneaking!'
 
@@ -138,8 +138,7 @@ edit-gui:
       <white> • <gray>Selling: <dark_gray>%paste_amount% %paste_per% <gray>of <dark_gray>%paste_item%
       <white> • <gray>Price: <aqua>%paste_price%<gray> diamonds
       
-      <gray>This will NOT save the container,
-      <gray>just apply the settings for you.
+      <gold><gold>⚠ <gray>This will <dark_gray>save the container</dark_gray>!
   
   # The untrack button's name and description
   untrack-button:

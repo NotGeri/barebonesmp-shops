@@ -15,6 +15,7 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
@@ -26,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,6 +34,7 @@ public class EditGui {
 
     private final Shops plugin;
     private final FileConfiguration config;
+
     private final Player player;
     private final Location location;
 
@@ -297,8 +298,9 @@ public class EditGui {
                 config.getString("edit-gui.paste-button.description")
         ), (e, isShiftClick) -> {
             this.unsavedContainer = pendingCopy;
-            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-pasted", "")));
+            this.save();
             this.recalculate();
+            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-pasted", "")));
         }));
     }
 
@@ -321,16 +323,22 @@ public class EditGui {
                 config.getString("edit-gui.save-button.name", ""),
                 config.getString("edit-gui.save-button.description", "")
         ), (e, isShiftClick) -> {
-
-            // Save the shop first
-            if (unsavedContainer.shop() != null) this.plugin.data().saveShop(unsavedContainer.shop());
-
-            // Update the container
-            this.plugin.data().saveContainer(location, unsavedContainer);
-            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-saved", "")));
-            this.plugin.getLogger().info("%s saved container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
+            this.save();
             this.close();
+            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-saved", "")));
         }));
+    }
+
+    /**
+     * Save the container
+     */
+    private void save() {
+        // Save the shop first
+        if (unsavedContainer.shop() != null) this.plugin.data().saveShop(unsavedContainer.shop());
+
+        // Update the container
+        this.plugin.data().saveContainer(location, unsavedContainer);
+        this.plugin.getLogger().info("%s saved container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
     }
 
     /**
@@ -448,6 +456,11 @@ public class EditGui {
         this.player.closeInventory();
 
         // Attempt to recalculate the stock of the underlying container
+        Inventory containerInventory = this.getContainerInventory();
+        if (containerInventory != null) {
+            this.plugin.recalculateStock(this.location, this.unsavedContainer, containerInventory);
+        }
+    }
         Location location = this.plugin.getTrackableBlockLocation(this.location.getWorld().getBlockAt(this.location));
         if (location == null) return;
 
