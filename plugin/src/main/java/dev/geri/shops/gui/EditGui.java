@@ -160,7 +160,7 @@ public class EditGui {
                 String ownersRaw = matcher.group("owners");
                 String descriptionRaw = matcher.group("description");
                 List<String> owners = ownersRaw != null ? Arrays.asList(ownersRaw.split(",\\s*")) : new ArrayList<>();
-                shop.setName(name).setOwners(owners).setDescription(descriptionRaw);
+                shop.setName(name != null ? name.trim() : null).setOwners(owners).setDescription(descriptionRaw != null ? descriptionRaw.trim() : null);
             }
 
             // Make sure we have a name at least
