@@ -231,7 +231,7 @@ public class EditGui {
 
             // If they put air, we will adjust the amount
             if (cursorItem == null || cursorItem.getType().isAir()) {
-                int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isRightClick() ? 1 : -1);
+                int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isLeftClick() ? 1 : -1);
                 if (newCount < 1) return;
                 this.unsavedContainer.setAmount(newCount);
                 this.recalculate();
@@ -260,7 +260,7 @@ public class EditGui {
                 config.getString("edit-gui.price-button.name"),
                 config.getString("edit-gui.price-button.description")
         ), (e) -> {
-            int newPrice = this.unsavedContainer.price() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isRightClick() ? 1 : -1);
+            int newPrice = this.unsavedContainer.price() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isLeftClick() ? 1 : -1);
             if (newPrice < 0) return;
             this.unsavedContainer.setPrice(newPrice);
             this.recalculate();

@@ -102,8 +102,8 @@ edit-gui:
     description: |
       <gray>Amount: <dark_gray>%amount% %per%
       <gray>
-      <dark_gray>Right click <gray>to increase the amount
-      <gray>and <dark_gray>left click <gray>to decrease it.
+      <dark_gray>Left click <gray>to increase the amount
+      <gray>and <dark_gray>right click <gray>to decrease it.
       <gray>Use shift to step by <dark_gray>10<gray>.
       <gray>
       <gray>Place the desired item to track here.
@@ -116,8 +116,8 @@ edit-gui:
   price-button:
     name: '<!italic><aqua>Selling for %price% diamonds'
     description: |
-      <dark_gray>Right click <gray>to increase the price
-      <gray>and <dark_gray>left click<dark_gray> <gray>to decrease it.
+      <dark_gray>Left click <gray>to increase the price
+      <gray>and <dark_gray>right click<dark_gray> <gray>to decrease it.
       <gray>Use shift to step by <dark_gray>10<gray>.
   
   copy-button:
