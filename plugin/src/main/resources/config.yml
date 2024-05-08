@@ -130,7 +130,7 @@ edit-gui:
       <gray>you can paste the settings on other containers
       <gray>by opening their editing menu.
       <gray>
-      <gray>Shift click to clear your clipboard.
+      <dark_gray>Shift click<gray> to clear your clipboard.
     
   paste-button:
     name: '<!italic><green>Paste Container'

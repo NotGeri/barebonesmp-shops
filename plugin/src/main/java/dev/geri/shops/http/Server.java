@@ -58,6 +58,7 @@ public class Server {
                     formatted.put("x", location.x());
                     formatted.put("y", location.y());
                     formatted.put("z", location.z());
+                    formatted.put("world", location.getWorld() != null ? location.getWorld().getName() : null);
                 }
 
                 String shopName = container.shopName();
