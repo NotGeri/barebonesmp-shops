@@ -1,6 +1,7 @@
 package dev.geri.shops.gui;
 
 import dev.geri.shops.Shops;
+import dev.geri.shops.data.Attributes;
 import dev.geri.shops.data.Container;
 import dev.geri.shops.data.Per;
 import dev.geri.shops.data.Shop;
@@ -20,8 +21,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.*;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
@@ -228,7 +228,8 @@ public class EditGui {
         if (unsavedContainer.amount() < 1) this.unsavedContainer.setAmount(1);
 
         this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e, isShiftClick) -> {
-            ItemStack cursorItem = isShiftClick ? e.getCurrentItem() : e.getCursor();
+            ItemStack item = isShiftClick ? e.getCurrentItem() : e.getCursor();
+            ItemMeta itemMeta = item != null ? item.getItemMeta() : null;
 
             // If they middle-click, attempt to get the item from the container
             if (e.getClick() == ClickType.MIDDLE || e.getClick() == ClickType.DROP) {
@@ -237,8 +238,8 @@ public class EditGui {
 
                 // Calculate the material with the most items in the container
                 HashMap<Material, Integer> items = new HashMap<>();
-                for (ItemStack item : containerInventory.getContents()) {
-                    if (item != null) items.merge(item.getType(), item.getAmount(), Integer::sum);
+                for (ItemStack i : containerInventory.getContents()) {
+                    if (i != null) items.merge(i.getType(), i.getAmount(), Integer::sum);
                 }
 
                 items.entrySet()
@@ -253,7 +254,7 @@ public class EditGui {
             }
 
             // If they put air, we will adjust the amount
-            if (cursorItem == null || cursorItem.getType().isAir()) {
+            if (item == null || item.getType().isAir()) {
                 int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isLeftClick() ? 1 : -1);
                 if (newCount < 1) return;
                 this.unsavedContainer.setAmount(newCount);
@@ -262,17 +263,27 @@ public class EditGui {
             }
 
             // Copy the custom name if there is one
-            ItemStack newItem = new ItemStack(cursorItem.getType());
+            ItemStack newItem = new ItemStack(item.getType());
             ItemMeta newItemMeta = newItem.getItemMeta();
-            if (cursorItem.getItemMeta() != null) {
-                Component displayName = cursorItem.getItemMeta().displayName();
+            Component displayName = null;
+            if (itemMeta != null) {
+                displayName = itemMeta.displayName();
                 if (displayName != null) newItemMeta.displayName(displayName);
             }
 
-            ItemMeta meta = cursorItem.getItemMeta();
-            Component displayName = meta.displayName();
+            // Save the attributes for special items
+            Attributes attributes = new Attributes();
+            if (item.getItemMeta() instanceof FireworkMeta meta) attributes.flightDuration = meta.getPower();
+            if (item.getItemMeta() instanceof PotionMeta meta) attributes.potionType = meta.getBasePotionType().getKey().asString();
+            Map<Enchantment, Integer> enchantments = new HashMap<>(item.getEnchantments());
+            if (item.getItemMeta() instanceof EnchantmentStorageMeta meta) enchantments.putAll(meta.getStoredEnchants());
+            enchantments.forEach((enchantment, level) -> {
+                attributes.enchantments.put(enchantment.getKey().asString(), level);
+            });
+
             this.unsavedContainer.setCustomName(displayName != null ? Shops.MINI_MESSAGE.serialize(displayName) : null);
             this.unsavedContainer.setMaterial(newItem.getType());
+            this.unsavedContainer.setAttributes(attributes);
             this.recalculate();
         }));
     }

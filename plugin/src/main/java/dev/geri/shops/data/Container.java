@@ -1,7 +1,10 @@
 package dev.geri.shops.data;
 
+import com.google.gson.annotations.SerializedName;
 import dev.geri.shops.utils.Strings;
 import org.bukkit.Material;
+
+import java.util.List;
 
 public class Container {
 
@@ -14,6 +17,7 @@ public class Container {
     private Per per;
     private int price;
     private int stock;
+    private Attributes attributes;
 
     public Container() {}
 
@@ -29,6 +33,7 @@ public class Container {
         this.per = container.per;
         this.price = container.price;
         this.stock = container.stock;
+        this.attributes = container.attributes;
     }
 
     /**
@@ -106,6 +111,15 @@ public class Container {
 
     public Container setStock(int stock) {
         this.stock = stock;
+        return this;
+    }
+
+    public Attributes attributes() {
+        return attributes;
+    }
+
+    public Container setAttributes(Attributes attributes) {
+        this.attributes = attributes;
         return this;
     }
 
