@@ -231,7 +231,7 @@ public class EditGui {
             ItemStack cursorItem = isShiftClick ? e.getCurrentItem() : e.getCursor();
 
             // If they middle-click, attempt to get the item from the container
-            if (e.getClick() == ClickType.MIDDLE) {
+            if (e.getClick() == ClickType.MIDDLE || e.getClick() == ClickType.DROP) {
                 Inventory containerInventory = this.getContainerInventory();
                 if (containerInventory == null) return;
 

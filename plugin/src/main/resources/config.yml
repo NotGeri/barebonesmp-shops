@@ -92,6 +92,10 @@ edit-gui:
     description: |
       <gray>Place the desired item to track here.
       <gray>If the item you wish to sell is more
+      <gray><dark_gray>Middle click</dark_gray> to attempt to auto-select the
+      <gray>material with the most items in the container.
+      <gray>
+      <gray>If the item you wish to sell is more
       <gray>abstract than an in-game item, rename
       <gray>any item in an anvil with your service.
   
