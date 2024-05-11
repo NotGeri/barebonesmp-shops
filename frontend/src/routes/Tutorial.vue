@@ -21,9 +21,11 @@ import copy from '@/assets/images/copy.png';
                     optional description.
                 </p>
                 <p>
-                    This is going to be your shop key. You can always create a new one, but it would be best to
-                    store
-                    this in a safe place.
+                    The name should be completely unique, so make sure no other shops are using it already.
+                </p>
+                <p>
+                    This is going to be your shop key. If you lose it, you can create a new one
+                    with the same shop name.
                 </p>
             </div>
             <img :src="key" alt="Shop key book" class="h-48 mt-1">
@@ -42,7 +44,8 @@ import copy from '@/assets/images/copy.png';
 
             <div class="flex flex-col sm:flex-row gap-3 items-center sm:items-start text-balance">
                 <div class="flex flex-col gap-3">
-                    <p>1. Drag or shift-click your shop key to the top slot. This will register the container with your shop.</p>
+                    <p>1. Drag or shift-click your shop key to the top slot. This will register the container with your
+                        shop.</p>
                     <p>2. Next, drag or shift-click the item you want to sell to the middle slot.</p>
                     <p>3. Select whether you want to sell X number of pieces, stacks or shulkers of this item.</p>
                     <p>
@@ -53,14 +56,17 @@ import copy from '@/assets/images/copy.png';
                         by 10s instead of 1s.
                     </p>
                     <p>
-                        5. Click the '<span class="text-green-400">Save Container</span>' button to start tracking it.<br/>
+                        5. Click the '<span class="text-green-400">Save Container</span>' button to start tracking
+                        it.<br/>
                         You will see a summary, just in case!
                     </p>
-                    <p class="text-xs text-muted">You can adjust either of these settings at any time.</p>
                 </div>
                 <img :src="register" alt="Container register screen" class="h-64 mt-1 object-contain">
 
             </div>
+
+            <p>Here is an example process:</p>
+            <video controls src="/videos/track.mp4"></video>
 
             <p>
                 <span class="font-extrabold text-orange-400">TIP</span>:
@@ -81,13 +87,16 @@ import copy from '@/assets/images/copy.png';
                 This will copy all the <i>current</i> (possibly unsaved) settings of the container.
             </p>
             <p>
-                Once copied, you can use the '<span class="text-green-400">Paste Container</span>' button in any container to paste the exact same settings.
-                You will need to use the '<span class="text-green-400">Save Container</span>' button to apply the changes.
+                Once copied, you can use the '<span class="text-green-400">Paste Container</span>' button in any
+                container to paste the exact same settings.
+                You will need to use the '<span class="text-green-400">Save Container</span>' button to apply the
+                changes.
             </p>
             <img :src="copy" alt="Copying containers" class="h-32 mt-1 object-contain">
             <p>
                 The settings will stay on your clipboard until you clear them with shift+click or disconnect.
             </p>
+            <video controls src="/videos/copy.mp4"></video>
         </div>
 
         <hr class="my-7"/>
@@ -109,14 +118,18 @@ import copy from '@/assets/images/copy.png';
         <h3 id="untracking">Untracking Containers</h3>
         <div class="flex flex-col gap-3">
             <p>
-                To do this, you can either use the '<span class="text-red-400">Untrack Container</span>' in the edit screen or simply break
-                the container. As a precaution, you will need to <span class="text-orange-400">hold sneak</span>
+                To do this, you can either use the '<span class="text-red-400">Untrack Container</span>' button
+                in the edit  screen or simply break the container.
+                As a precaution, you will need to <span class="text-orange-400">hold sneak</span>
                 to confirm you wish to unregister the container by breaking it.
             </p>
             <p>
                 If all the containers for a shop are untracked, the shop will be unregistered as well.<br/>
+            </p>
+            <p>
                 You can still use your key to re-create it at any time!
             </p>
+            <video controls src="/videos/untrack.mp4"></video>
         </div>
 
     </div>
