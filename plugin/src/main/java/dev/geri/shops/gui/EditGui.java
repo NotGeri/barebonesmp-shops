@@ -229,7 +229,6 @@ public class EditGui {
 
         this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e, isShiftClick) -> {
             ItemStack item = isShiftClick ? e.getCurrentItem() : e.getCursor();
-            ItemMeta itemMeta = item != null ? item.getItemMeta() : null;
 
             // If they middle-click, attempt to get the item from the container
             if (e.getClick() == ClickType.MIDDLE || e.getClick() == ClickType.DROP) {
@@ -237,17 +236,11 @@ public class EditGui {
                 if (containerInventory == null) return;
 
                 // Calculate the material with the most items in the container
-                HashMap<Material, Integer> items = new HashMap<>();
-                for (ItemStack i : containerInventory.getContents()) {
-                    if (i != null) items.merge(i.getType(), i.getAmount(), Integer::sum);
-                }
-
-                items.entrySet()
+                this.plugin.getInventoryContents(containerInventory).entrySet()
                         .stream()
                         .max(Map.Entry.comparingByValue())
                         .ifPresent(entry -> {
-                            if (entry.getKey().isAir()) return;
-                            this.unsavedContainer.setMaterial(entry.getKey());
+                            this.setItem(entry.getKey());
                             this.recalculate();
                         });
                 return;
@@ -262,30 +255,39 @@ public class EditGui {
                 return;
             }
 
-            // Copy the custom name if there is one
-            ItemStack newItem = new ItemStack(item.getType());
-            ItemMeta newItemMeta = newItem.getItemMeta();
-            Component displayName = null;
-            if (itemMeta != null) {
-                displayName = itemMeta.displayName();
-                if (displayName != null) newItemMeta.displayName(displayName);
-            }
-
-            // Save the attributes for special items
-            Attributes attributes = new Attributes();
-            if (item.getItemMeta() instanceof FireworkMeta meta) attributes.flightDuration = meta.getPower();
-            if (item.getItemMeta() instanceof PotionMeta meta) attributes.potionType = meta.getBasePotionType().getKey().asString();
-            Map<Enchantment, Integer> enchantments = new HashMap<>(item.getEnchantments());
-            if (item.getItemMeta() instanceof EnchantmentStorageMeta meta) enchantments.putAll(meta.getStoredEnchants());
-            enchantments.forEach((enchantment, level) -> {
-                attributes.enchantments.put(enchantment.getKey().asString(), level);
-            });
-
-            this.unsavedContainer.setCustomName(displayName != null ? Shops.MINI_MESSAGE.serialize(displayName) : null);
-            this.unsavedContainer.setMaterial(newItem.getType());
-            this.unsavedContainer.setAttributes(attributes);
+            this.setItem(item);
             this.recalculate();
         }));
+    }
+
+    /**
+     * Set the custom item to a new item stack
+     */
+    private void setItem(@NotNull ItemStack item) {
+
+        // Copy the custom name if there is one
+        ItemMeta itemMeta = item.getItemMeta();
+        ItemStack newItem = new ItemStack(item.getType());
+        ItemMeta newItemMeta = newItem.getItemMeta();
+        Component displayName = null;
+        if (itemMeta != null) {
+            displayName = itemMeta.displayName();
+            if (displayName != null) newItemMeta.displayName(displayName);
+        }
+
+        // Save the attributes for special items
+        Attributes attributes = new Attributes();
+        if (item.getItemMeta() instanceof FireworkMeta meta) attributes.flightDuration = meta.getPower();
+        if (item.getItemMeta() instanceof PotionMeta meta) attributes.potionType = meta.getBasePotionType().getKey().asString();
+        Map<Enchantment, Integer> enchantments = new HashMap<>(item.getEnchantments());
+        if (item.getItemMeta() instanceof EnchantmentStorageMeta meta) enchantments.putAll(meta.getStoredEnchants());
+        enchantments.forEach((enchantment, level) -> {
+            attributes.enchantments.put(enchantment.getKey().asString(), level);
+        });
+
+        this.unsavedContainer.setCustomName(displayName != null ? Shops.MINI_MESSAGE.serialize(displayName) : null);
+        this.unsavedContainer.setMaterial(newItem.getType());
+        this.unsavedContainer.setAttributes(attributes);
     }
 
     private void priceButton() {

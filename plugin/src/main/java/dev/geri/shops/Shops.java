@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -207,27 +208,42 @@ public final class Shops extends JavaPlugin implements Listener, TabExecutor {
     }
 
     /**
-     * Recalculate the stock of a container based on an inventory
+     * Get all the items for an inventory, including from shulkers
+     *
+     * @param inventory The inventory to check
+     * @return The map of items
      */
-    public void recalculateStock(Location location, Container container, Inventory inventory) {
-        int newStock = 0;
+    public HashMap<ItemStack, Integer> getInventoryContents(Inventory inventory) {
+        HashMap<ItemStack, Integer> items = new HashMap<>();
+
         for (ItemStack item : inventory) {
             if (item == null) continue;
-            if (item.getType() == container.material()) {
-                newStock += item.getAmount();
-            }
+            if (item.getType().isAir()) continue;
+            items.put(item, items.getOrDefault(item, 0) + item.getAmount());
 
             // Check if it's a shulker and repeat with the items inside
             if (item.getItemMeta() instanceof BlockStateMeta state) {
                 if (state.getBlockState() instanceof ShulkerBox shulker) {
                     for (ItemStack i : shulker.getInventory()) {
                         if (i == null) continue;
-                        if (i.getType() == container.material()) {
-                            newStock += i.getAmount();
-                        }
+                        if (i.getType().isAir()) continue;
+                        items.put(i, items.getOrDefault(i, 0) + i.getAmount());
                     }
                 }
             }
+        }
+
+        return items;
+    }
+
+    /**
+     * Recalculate the stock of a container based on an inventory
+     */
+    public void recalculateStock(Location location, Container container, Inventory inventory) {
+        int newStock = 0;
+
+        for (Map.Entry<ItemStack, Integer> entry : this.getInventoryContents(inventory).entrySet()) {
+            if (entry.getKey().getType() == container.material()) newStock += entry.getValue();
         }
 
         // Update the stock if necessary
