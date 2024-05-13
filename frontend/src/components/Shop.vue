@@ -22,7 +22,7 @@ const containers = computed(() => {
             groupedContainers[key] = { ...container };
         }
     }
-    return Object.values(groupedContainers);
+    return Object.values(groupedContainers).sort(container => container.asset?.type === 'block' ? 1 : -1);
 });
 
 </script>

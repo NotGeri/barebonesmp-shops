@@ -38,26 +38,28 @@ public class Server {
             exchange.getResponseHeaders().set("Content-Type", "application/json");
 
             // Assuming Shops class has a way to get all shops with their details
-            Map<String, List<Map<String, Serializable>>> shopContainers = new LinkedHashMap<>();
-            List<Map<String, Serializable>> danglingContainers = new ArrayList<>();
+            Map<String, List<Map<String, Object>>> shopContainers = new LinkedHashMap<>();
+            List<Map<String, Object>> danglingContainers = new ArrayList<>();
 
             for (Map.Entry<String, Container> entry : data.containers().entrySet()) {
                 Container container = entry.getValue();
                 if (container.material() == null) continue; // Skip containers without material
 
-                Map<String, Serializable> formatted = new LinkedHashMap<>();
+                Map<String, Object> formatted = new LinkedHashMap<>();
                 formatted.put("id", container.material().getKey().toString());
-                formatted.put("customName", container.customName());
+                formatted.put("custom_name", container.customName());
                 formatted.put("amount", container.amount());
                 formatted.put("per", container.per());
                 formatted.put("price", container.price());
                 formatted.put("stock", container.stock());
+                formatted.put("attributes", container.attributes());
 
                 Location location = data.parseLocation(entry.getKey());
                 if (location != null) {
                     formatted.put("x", location.x());
                     formatted.put("y", location.y());
                     formatted.put("z", location.z());
+                    formatted.put("world", location.getWorld() != null ? location.getWorld().getName() : null);
                 }
 
                 String shopName = container.shopName();

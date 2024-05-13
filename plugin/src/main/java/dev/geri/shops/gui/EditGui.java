@@ -1,6 +1,7 @@
 package dev.geri.shops.gui;
 
 import dev.geri.shops.Shops;
+import dev.geri.shops.data.Attributes;
 import dev.geri.shops.data.Container;
 import dev.geri.shops.data.Per;
 import dev.geri.shops.data.Shop;
@@ -15,18 +16,17 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.*;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,6 +34,7 @@ public class EditGui {
 
     private final Shops plugin;
     private final FileConfiguration config;
+
     private final Player player;
     private final Location location;
 
@@ -128,8 +129,8 @@ public class EditGui {
         }
 
         // Add the shop book
-        this.slots.put(4, new SlotHandler(shopBook, ShiftClick.SPECIFIC.setMaterial(Material.WRITABLE_BOOK), (e) -> {
-            ItemStack item = e.getClick().isShiftClick() ? e.getCurrentItem() : e.getCursor();
+        this.slots.put(4, new SlotHandler(shopBook, ShiftClick.SPECIFIC.setMaterial(Material.WRITABLE_BOOK), (e, isShiftClick) -> {
+            ItemStack item = isShiftClick ? e.getCurrentItem() : e.getCursor();
 
             // If they put air, we will revert
             if (item == null || item.getType().isAir()) {
@@ -159,7 +160,7 @@ public class EditGui {
                 String ownersRaw = matcher.group("owners");
                 String descriptionRaw = matcher.group("description");
                 List<String> owners = ownersRaw != null ? Arrays.asList(ownersRaw.split(",\\s*")) : new ArrayList<>();
-                shop.setName(name).setOwners(owners).setDescription(descriptionRaw);
+                shop.setName(name != null ? name.trim() : null).setOwners(owners).setDescription(descriptionRaw != null ? descriptionRaw.trim() : null);
             }
 
             // Make sure we have a name at least
@@ -198,7 +199,7 @@ public class EditGui {
                 this.enchant(item);
             }
 
-            this.slots.put(10 + perIndex * 9, new SlotHandler(item, (e) -> {
+            this.slots.put(10 + perIndex * 9, new SlotHandler(item, (e, isShiftClick) -> {
                 this.unsavedContainer.setPer(entry.getKey());
                 this.recalculate();
             }));
@@ -226,32 +227,67 @@ public class EditGui {
         // Default to 1
         if (unsavedContainer.amount() < 1) this.unsavedContainer.setAmount(1);
 
-        this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e) -> {
-            ItemStack cursorItem = e.getClick().isShiftClick() ? e.getCurrentItem() : e.getCursor();
+        this.slots.put(22, new SlotHandler(selectedItem, ShiftClick.ANY, (e, isShiftClick) -> {
+            ItemStack item = isShiftClick ? e.getCurrentItem() : e.getCursor();
+
+            // If they middle-click, attempt to get the item from the container
+            if (e.getClick() == ClickType.MIDDLE || e.getClick() == ClickType.DROP) {
+                Inventory containerInventory = this.getContainerInventory();
+                if (containerInventory == null) return;
+
+                // Calculate the material with the most items in the container
+                this.plugin.getInventoryContents(containerInventory).entrySet()
+                        .stream()
+                        .max(Map.Entry.comparingByValue())
+                        .ifPresent(entry -> {
+                            this.setItem(entry.getKey());
+                            this.recalculate();
+                        });
+                return;
+            }
 
             // If they put air, we will adjust the amount
-            if (cursorItem == null || cursorItem.getType().isAir()) {
-                int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isRightClick() ? 1 : -1);
+            if (item == null || item.getType().isAir()) {
+                int newCount = this.unsavedContainer.amount() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isLeftClick() ? 1 : -1);
                 if (newCount < 1) return;
                 this.unsavedContainer.setAmount(newCount);
                 this.recalculate();
                 return;
             }
 
-            // Copy the custom name if there is one
-            ItemStack newItem = new ItemStack(cursorItem.getType());
-            ItemMeta newItemMeta = newItem.getItemMeta();
-            if (cursorItem.getItemMeta() != null) {
-                Component displayName = cursorItem.getItemMeta().displayName();
-                if (displayName != null) newItemMeta.displayName(displayName);
-            }
-
-            ItemMeta meta = cursorItem.getItemMeta();
-            Component displayName = meta.displayName();
-            this.unsavedContainer.setCustomName(displayName != null ? Shops.MINI_MESSAGE.serialize(displayName) : null);
-            this.unsavedContainer.setMaterial(newItem.getType());
+            this.setItem(item);
             this.recalculate();
         }));
+    }
+
+    /**
+     * Set the custom item to a new item stack
+     */
+    private void setItem(@NotNull ItemStack item) {
+
+        // Copy the custom name if there is one
+        ItemMeta itemMeta = item.getItemMeta();
+        ItemStack newItem = new ItemStack(item.getType());
+        ItemMeta newItemMeta = newItem.getItemMeta();
+        Component displayName = null;
+        if (itemMeta != null) {
+            displayName = itemMeta.displayName();
+            if (displayName != null) newItemMeta.displayName(displayName);
+        }
+
+        // Save the attributes for special items
+        Attributes attributes = new Attributes();
+        if (item.getItemMeta() instanceof FireworkMeta meta) attributes.flightDuration = meta.getPower();
+        if (item.getItemMeta() instanceof PotionMeta meta) attributes.potionType = meta.getBasePotionType().getKey().asString();
+        Map<Enchantment, Integer> enchantments = new HashMap<>(item.getEnchantments());
+        if (item.getItemMeta() instanceof EnchantmentStorageMeta meta) enchantments.putAll(meta.getStoredEnchants());
+        enchantments.forEach((enchantment, level) -> {
+            attributes.enchantments.put(enchantment.getKey().asString(), level);
+        });
+
+        this.unsavedContainer.setCustomName(displayName != null ? Shops.MINI_MESSAGE.serialize(displayName) : null);
+        this.unsavedContainer.setMaterial(newItem.getType());
+        this.unsavedContainer.setAttributes(attributes);
     }
 
     private void priceButton() {
@@ -259,8 +295,8 @@ public class EditGui {
                 new ItemStack(Material.DIAMOND),
                 config.getString("edit-gui.price-button.name"),
                 config.getString("edit-gui.price-button.description")
-        ), (e) -> {
-            int newPrice = this.unsavedContainer.price() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isRightClick() ? 1 : -1);
+        ), (e, isShiftClick) -> {
+            int newPrice = this.unsavedContainer.price() + (e.isShiftClick() ? 10 : 1) * (e.getClick().isLeftClick() ? 1 : -1);
             if (newPrice < 0) return;
             this.unsavedContainer.setPrice(newPrice);
             this.recalculate();
@@ -276,7 +312,7 @@ public class EditGui {
                 item,
                 config.getString("edit-gui.copy-button.name"),
                 config.getString("edit-gui.copy-button.description")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
             if (e.isShiftClick()) {
                 this.plugin.data().removePendingCopy(player.getUniqueId());
             } else {
@@ -295,10 +331,11 @@ public class EditGui {
                 new ItemStack(Material.FILLED_MAP),
                 config.getString("edit-gui.paste-button.name"),
                 config.getString("edit-gui.paste-button.description")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
             this.unsavedContainer = pendingCopy;
-            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-pasted", "")));
+            this.save();
             this.recalculate();
+            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-pasted", "")));
         }));
     }
 
@@ -307,7 +344,7 @@ public class EditGui {
                 Heads.getPlayerHeadItem("beb588b21a6f98ad1ff4e085c552dcb050efc9cab427f46048f18fc803475f7"),
                 config.getString("edit-gui.untrack-button.name"),
                 config.getString("edit-gui.untrack-button.description")
-        ), (e) -> {
+        ), (e, isShiftClick) -> {
             this.plugin.data().removeContainer(location);
             this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-untracked", "")));
             this.plugin.getLogger().info("%s untracked container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
@@ -320,17 +357,23 @@ public class EditGui {
                 Heads.getPlayerHeadItem("a92e31ffb59c90ab08fc9dc1fe26802035a3a47c42fee63423bcdb4262ecb9b6"),
                 config.getString("edit-gui.save-button.name", ""),
                 config.getString("edit-gui.save-button.description", "")
-        ), (e) -> {
-
-            // Save the shop first
-            if (unsavedContainer.shop() != null) this.plugin.data().saveShop(unsavedContainer.shop());
-
-            // Update the container
-            this.plugin.data().saveContainer(location, unsavedContainer);
-            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-saved", "")));
-            this.plugin.getLogger().info("%s saved container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
+        ), (e, isShiftClick) -> {
+            this.save();
             this.close();
+            this.player.sendMessage(Shops.MINI_MESSAGE.deserialize(this.config.getString("messages.container-saved", "")));
         }));
+    }
+
+    /**
+     * Save the container
+     */
+    private void save() {
+        // Save the shop first
+        if (unsavedContainer.shop() != null) this.plugin.data().saveShop(unsavedContainer.shop());
+
+        // Update the container
+        this.plugin.data().saveContainer(location, unsavedContainer);
+        this.plugin.getLogger().info("%s saved container %s %s %s".formatted(this.player.getName(), location.getBlockX(), location.getBlockY(), location.getBlockY()));
     }
 
     /**
@@ -405,15 +448,16 @@ public class EditGui {
      */
     public void onInventoryClick(InventoryClickEvent e) {
 
+
         // Handle shift clicking items in the GUI for speed
         ItemStack item = e.getCurrentItem();
-        if (item != null && !item.getType().isAir() && e.isShiftClick()) {
+        if (item != null && !item.getType().isAir() && e.isShiftClick() && e.getClickedInventory() == player.getInventory()) {
             // First see if there is one that accepts
             // this specific material
             for (SlotHandler handler : this.slots.values()) {
                 if (handler.shiftClick != ShiftClick.SPECIFIC) continue;
                 if (handler.shiftClick.material == item.getType()) {
-                    handler.action.accept(e);
+                    handler.action.accept(e, true);
                     return;
                 }
             }
@@ -421,7 +465,7 @@ public class EditGui {
             // If not, find any that accept all other
             for (SlotHandler handler : this.slots.values()) {
                 if (handler.shiftClick == ShiftClick.ANY) {
-                    handler.action.accept(e);
+                    handler.action.accept(e, true);
                     return;
                 }
             }
@@ -436,7 +480,7 @@ public class EditGui {
 
         SlotHandler handler = this.slots.get(e.getSlot());
         if (handler != null && handler.action != null) {
-            handler.action.accept(e);
+            handler.action.accept(e, false);
         }
     }
 
@@ -447,13 +491,27 @@ public class EditGui {
         this.player.closeInventory();
 
         // Attempt to recalculate the stock of the underlying container
+        Inventory containerInventory = this.getContainerInventory();
+        if (containerInventory != null) {
+            this.plugin.recalculateStock(this.location, this.unsavedContainer, containerInventory);
+        }
+    }
+
+    /**
+     * Get the inventory of the underlying physical container
+     *
+     * @return The inventory or null if invalid
+     */
+    private Inventory getContainerInventory() {
         Location location = this.plugin.getTrackableBlockLocation(this.location.getWorld().getBlockAt(this.location));
-        if (location == null) return;
+        if (location == null) return null;
 
         Block block = location.getBlock();
         if (block.getState() instanceof org.bukkit.block.Container c) {
-            this.plugin.recalculateStock(this.location, this.unsavedContainer, c.getInventory());
+            return c.getInventory();
         }
+
+        return null;
     }
 
     /**
@@ -478,15 +536,15 @@ public class EditGui {
 
     private static final class SlotHandler {
         public final ItemStack item;
-        public final Consumer<InventoryClickEvent> action;
+        public BiConsumer<InventoryClickEvent, Boolean> action;
         public ShiftClick shiftClick;
 
-        public SlotHandler(ItemStack item, Consumer<InventoryClickEvent> action) {
+        public SlotHandler(ItemStack item, BiConsumer<InventoryClickEvent, Boolean> action) {
             this.item = item;
             this.action = action;
         }
 
-        public SlotHandler(ItemStack item, ShiftClick shiftClick, Consumer<InventoryClickEvent> action) {
+        public SlotHandler(ItemStack item, ShiftClick shiftClick, BiConsumer<InventoryClickEvent, Boolean> action) {
             this.item = item;
             this.shiftClick = shiftClick;
             this.action = action;

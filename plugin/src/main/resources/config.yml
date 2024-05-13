@@ -29,7 +29,7 @@ messages:
   description-too-long: '<red>The shop description is too long!'
   container-saved: '<green>Container saved!'
   container-copied: '<green>Container copied!'
-  container-pasted: '<green>Container pasted!'
+  container-pasted: '<green>Container pasted and saved!'
   container-untracked: '<red>Container untracked!'
   confirm-break: '<gold><bold>WARNING</bold><white>: <yellow>This container is tracked as a shop. If you are sure you want to delete it, break it while sneaking!'
 
@@ -92,6 +92,10 @@ edit-gui:
     description: |
       <gray>Place the desired item to track here.
       <gray>If the item you wish to sell is more
+      <gray><dark_gray>Middle click</dark_gray> to attempt to auto-select the
+      <gray>material with the most items in the container.
+      <gray>
+      <gray>If the item you wish to sell is more
       <gray>abstract than an in-game item, rename
       <gray>any item in an anvil with your service.
   
@@ -100,13 +104,15 @@ edit-gui:
     not-custom-name: '<!italic><yellow>Selling the vanilla material'
     # The description of the item no matter what
     description: |
+      <gray>Place the desired item to track here.
+      <gray><dark_gray>Middle click</dark_gray> to attempt to auto-select the
+      <gray>material with the most items in the container.
+      <gray>
       <gray>Amount: <dark_gray>%amount% %per%
       <gray>
-      <dark_gray>Right click <gray>to increase the amount
-      <gray>and <dark_gray>left click <gray>to decrease it.
+      <dark_gray>Left click <gray>to increase the amount
+      <gray>and <dark_gray>right click <gray>to decrease it.
       <gray>Use shift to step by <dark_gray>10<gray>.
-      <gray>
-      <gray>Place the desired item to track here.
       <gray>
       <gray>If the item you wish to sell is more
       <gray>abstract than an in-game item, rename
@@ -116,8 +122,8 @@ edit-gui:
   price-button:
     name: '<!italic><aqua>Selling for %price% diamonds'
     description: |
-      <dark_gray>Right click <gray>to increase the price
-      <gray>and <dark_gray>left click<dark_gray> <gray>to decrease it.
+      <dark_gray>Left click <gray>to increase the price
+      <gray>and <dark_gray>right click<dark_gray> <gray>to decrease it.
       <gray>Use shift to step by <dark_gray>10<gray>.
   
   copy-button:
@@ -128,7 +134,7 @@ edit-gui:
       <gray>you can paste the settings on other containers
       <gray>by opening their editing menu.
       <gray>
-      <gray>Shift click to clear your clipboard.
+      <dark_gray>Shift click<gray> to clear your clipboard.
     
   paste-button:
     name: '<!italic><green>Paste Container'
@@ -138,8 +144,7 @@ edit-gui:
       <white> • <gray>Selling: <dark_gray>%paste_amount% %paste_per% <gray>of <dark_gray>%paste_item%
       <white> • <gray>Price: <aqua>%paste_price%<gray> diamonds
       
-      <gray>This will NOT save the container,
-      <gray>just apply the settings for you.
+      <gold><gold>⚠ <gray>This will <dark_gray>save the container</dark_gray>!
   
   # The untrack button's name and description
   untrack-button:

@@ -14,9 +14,11 @@ export type ContainerProps = {
     per?: Per
     price: number
     stock: number
+
     x?: number
     y?: number
     z?: number
+    world?: string
 
     asset?: Asset
 }
@@ -57,7 +59,7 @@ const itemNumberTooltip = computed((): string => {
     </p>
     <div class="flex flex-row gap-3">
         <img alt="item icon" v-if="iconPath" class="w-8 h-8 object-cover" :src="iconPath">
-        <h5>{{ customName ?? asset?.display ?? id }}</h5>
+        <h5 :title="`${world} ${x} ${y} ${z}`">{{ customName ?? asset?.display ?? id }}</h5>
     </div>
     <div>
         {{ price }} diamond{{ price > 1 ? 's' : '' }} / {{ amount != 1 ? amount : '' }}
