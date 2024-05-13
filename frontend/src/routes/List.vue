@@ -45,24 +45,30 @@ onMounted(async () => {
 });
 
 const filteredShops = computed((): ShopProps[] => {
-    if (!query.value) return shops.value;
-    const lower = query.value.toLowerCase();
+    let filtered: ShopProps[] = [];
 
-    return shops.value.reduce<ShopProps[]>((acc, shop) => {
+    if (query.value) {
+        const lower = query.value.toLowerCase();
+        filtered = shops.value.reduce<ShopProps[]>((acc, shop) => {
 
-        const matchingContainers = shop.containers.filter(container =>
-            container.id?.toLowerCase().includes(lower) || container?.asset?.display?.toLowerCase().includes(lower),
-        ) ?? [];
+            const matchingContainers = shop.containers.filter(container =>
+                container.id?.toLowerCase().includes(lower) || container?.asset?.display?.toLowerCase().includes(lower),
+            ) ?? [];
 
-        if (matchingContainers.length > 0) {
-            acc.push({
-                ...shop,
-                containers: matchingContainers,
-            });
-        }
+            if (matchingContainers.length > 0) {
+                acc.push({
+                    ...shop,
+                    containers: matchingContainers,
+                });
+            }
 
-        return acc;
-    }, []);
+            return acc;
+        }, []);
+    } else {
+        filtered = shops.value;
+    }
+
+    return filtered.sort((a, b) => a.name.localeCompare(b.name));
 });
 </script>
 
@@ -74,7 +80,8 @@ const filteredShops = computed((): ShopProps[] => {
             <a target="_blank" href="https://barebonesmp.com">BarebonesMP</a>.
         </p>
         <p>
-            Learn how you can set up your shops <router-link to="/tutorial">here.</router-link>
+            Learn how you can set up your shops
+            <router-link to="/tutorial">here.</router-link>
         </p>
         <input class="text-black p-1.5 w-1/3 rounded" ref="input" v-model="query" placeholder="Search for items...">
         <div class="flex flex-row gap-1">
