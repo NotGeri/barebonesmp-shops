@@ -4,16 +4,22 @@ import { computed } from 'vue';
 
 export type Per = 'piece' | 'stack' | 'shulker'
 
+export type Attributes = {
+    flight_duration?: number;
+    potion_type?: string;
+    enchantments?: Record<string, number>
+}
+
 export type ContainerProps = {
-    shopName?: string
     // The namespace ID of the item or the icon
     id: string
     // The custom name if it's not specifically selling what the icon is
-    customName?: string
+    custom_name?: string
     amount: number
     per?: Per
     price: number
     stock: number
+    attributes?: Attributes
 
     x?: number
     y?: number
@@ -51,18 +57,33 @@ const availablePortions = computed(() => {
 const itemNumberTooltip = computed((): string => {
     return `${props.stock} total items, ~${(props.stock / STACK).toFixed(2)} stacks, ${(props.stock / STACK / SHULKER).toFixed(2)} shulkers`;
 });
+
+const worldName = computed((): string => {
+    switch (props.world?.toLowerCase()) {
+        case undefined:
+        case '':
+        case 'world':
+            return '';
+        case 'world_nether':
+            return 'Nether';
+        case 'world_the_end':
+            return 'End';
+    }
+    return '';
+});
 </script>
 
 <template>
-    <p :title="customName ? 'Unable to track custom named item/service' : itemNumberTooltip">
-        {{ customName ? '-' :  availablePortions }}
+    <p :title="custom_name ? 'Unable to track custom named item/service' : itemNumberTooltip">
+        {{ custom_name ? '-' : availablePortions }}
     </p>
     <div class="flex flex-row gap-3">
         <img alt="item icon" v-if="iconPath" class="w-8 h-8 object-cover" :src="iconPath">
-        <h5 :title="`${world} ${x} ${y} ${z}`">{{ customName ?? asset?.display ?? id }}</h5>
+        <h5>{{ custom_name ?? asset?.display ?? id }}</h5>
     </div>
     <div>
         {{ price }} diamond{{ price > 1 ? 's' : '' }} / {{ amount != 1 ? amount : '' }}
         {{ per }}{{ amount > 1 ? 's' : '' }}
     </div>
+    <span>{{ worldName }} {{ x }} {{ y }} {{ z }}</span>
 </template>

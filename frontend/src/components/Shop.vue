@@ -15,7 +15,7 @@ const containers = computed(() => {
     if (!props.groupSimilar) return props.containers;
     const groupedContainers: { [key: string]: ContainerProps } = {};
     for (const container of props.containers ?? []) {
-        const key = `${container.id}-${container.customName}-${container.amount}-${container.per}-${container.price}`;
+        const key = `${container.id}-${container.custom_name}-${container.amount}-${container.per}-${container.price}`;
         if (groupedContainers[key]) {
             groupedContainers[key].stock += container.stock;
         } else {
@@ -37,10 +37,11 @@ const containers = computed(() => {
             </p>
         </div>
 
-        <div v-if="containers && containers.length > 0" class="grid grid-cols-[6em,0.5fr,1fr] gap-3">
+        <div v-if="containers && containers.length > 0" class="grid grid-cols-[0.3fr,4fr,4fr,2fr] gap-3 items-center whitespace-nowrap">
             <h3>Stock</h3>
             <h3>Item/Service</h3>
             <h3>Pricing</h3>
+            <h3>Location</h3>
             <Container v-for="(container, index) in containers"
                        :key="index"
                        v-bind="container"
