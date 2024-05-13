@@ -30,7 +30,7 @@ export type ContainerProps = {
 }
 
 const props = defineProps<ContainerProps>();
-const iconPath = props.asset?.path;
+const iconPath = computed(() => props.asset?.path);
 
 const STACK = 64;
 const SHULKER = 27;
