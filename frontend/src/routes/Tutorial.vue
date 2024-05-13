@@ -10,7 +10,18 @@ import copy from '@/assets/images/copy.png';
             x
         </router-link>
 
-        <h1 class="text-center">Shop Tracker Tutorial</h1>
+        <div class="flex flex-col gap-3 mb-3 text-sm">
+            <h1 class="text-center">Shop Tracker Tutorial</h1>
+            <p>
+                The server has a simple plugin that allows you to register shop containers, such as barrels and chests
+                to be part of a shop.
+            </p>
+            <p>Tracked shops and containers will automatically appear in the
+                <router-link to="/">shop list</router-link>
+            </p>
+        </div>
+
+        <hr class="my-7"/>
 
         <div class="flex flex-col sm:flex-row justify-between items-center sm:items-start text-balance">
             <div class="flex flex-col gap-3">
@@ -21,7 +32,8 @@ import copy from '@/assets/images/copy.png';
                     optional description.
                 </p>
                 <p>
-                    The name should be completely unique, so make sure no other shops are using it already.
+                    The name should be <span class="font-extrabold text-green-400">completely unique</span>, so make
+                    sure no other shops are using it already.
                 </p>
                 <p>
                     This is going to be your shop key. If you lose it, you can create a new one
@@ -48,10 +60,12 @@ import copy from '@/assets/images/copy.png';
                         shop.</p>
                     <p>2. Next, drag or shift-click the item you want to sell to the middle slot.</p>
                     <p>3. Select whether you want to sell X number of pieces, stacks or shulkers of this item.</p>
+                    <p>You can use the middle-click to automatically select the most used item from the container.</p>
                     <p>
-                        4. Adjust how many of the selected size and for how many diamonds you wish to
-                        sell.<br/>
-                        Left clicking increases the amount and right clicking decreases it. You can hold shift to
+                        4. Adjust how many of the selected size and for how many diamonds you wish to sell.
+                        by<br/>
+                        Left clicking <span class="text-orange-400">the item</span> or <span class="text-blue-400">the diamond</span>
+                        increases the amount and right clicking decreases it. You can hold shift to
                         step
                         by 10s instead of 1s.
                     </p>
@@ -71,7 +85,8 @@ import copy from '@/assets/images/copy.png';
             <p>
                 <span class="font-extrabold text-orange-400">TIP</span>:
                 If you wish to sell a service or abstract item instead of a specific block or similar,
-                find the closest in-game item that matches with what you are selling.
+                find the closest in-game item that matches with what you are selling and rename it
+                in an anvil to the name of your service.
             </p>
         </div>
 
@@ -119,7 +134,7 @@ import copy from '@/assets/images/copy.png';
         <div class="flex flex-col gap-3">
             <p>
                 To do this, you can either use the '<span class="text-red-400">Untrack Container</span>' button
-                in the edit  screen or simply break the container.
+                in the edit screen or simply break the container.
                 As a precaution, you will need to <span class="text-orange-400">hold sneak</span>
                 to confirm you wish to unregister the container by breaking it.
             </p>
