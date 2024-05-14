@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import index from '@/assets/index.json';
 import { computed, onMounted, ref } from 'vue';
 import { type ContainerProps } from '@/components/Container.vue';
 import Shop, { type ShopProps } from '@/components/Shop.vue';
+import { useStore } from '@/store';
 
-export type Asset = { display: string, path: string, type: string };
-const assets = index as Record<string, Asset>;
-
+const store = useStore();
 const shops = ref<ShopProps[]>([]);
 
 const input = ref();
@@ -21,7 +19,7 @@ const refetch = async () => {
 
     for (const shop of data.shops) {
         for (const container of shop.containers) {
-            container.asset = assets[container.id.replace('minecraft:', '')];
+            container.asset = store.assets.entries[container.id.replace('minecraft:', '')];
         }
     }
 };

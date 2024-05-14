@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { Asset } from '@/routes/List.vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { type Asset, useStore } from '@/store';
+import { romanise } from '../utils';
 
 export type Per = 'piece' | 'stack' | 'shulker'
 
@@ -29,6 +30,7 @@ export type ContainerProps = {
     asset?: Asset
 }
 
+const store = useStore();
 const props = defineProps<ContainerProps>();
 const iconPath = computed(() => props.asset?.path);
 
@@ -54,10 +56,6 @@ const availablePortions = computed(() => {
     return Math.floor(totalItems / portionSize);
 });
 
-const itemNumberTooltip = computed((): string => {
-    return `${props.stock} total items, ~${(props.stock / STACK).toFixed(2)} stacks, ${(props.stock / STACK / SHULKER).toFixed(2)} shulkers`;
-});
-
 const worldName = computed((): string => {
     switch (props.world?.toLowerCase()) {
         case undefined:
@@ -71,19 +69,60 @@ const worldName = computed((): string => {
     }
     return '';
 });
+
+const showTooltip = ref<'stock' | 'attributes' | false>(false);
+const hasEnchants = computed(() => {
+    return Object.keys(props.attributes?.enchantments ?? {})?.length ?? 0 > 0;
+});
+const hasAttributes = computed(() => {
+    if (hasEnchants.value) return true;
+    if (props.attributes?.flight_duration) return true;
+    if (props.attributes?.potion_type) return true;
+    return false;
+});
 </script>
 
 <template>
-    <p :title="custom_name ? 'Unable to track custom named item/service' : itemNumberTooltip">
-        {{ custom_name ? '-' : availablePortions }}
-    </p>
+    <div class="relative">
+        <p class="p-3 -m-3" @mouseover="showTooltip = 'stock'" @mouseleave="showTooltip = false">
+            {{ custom_name ? '-' : availablePortions }}
+        </p>
+
+        <div v-if="showTooltip === 'stock'"
+             class="absolute left-0 top-full mt-1 bg-darkest p-2 border rounded shadow-lg z-10">
+            <p>{{ props.stock }} total items</p>
+            <p>~{{ (props.stock / STACK).toFixed(2) }} stacks</p>
+            <p>{{ (props.stock / STACK / SHULKER).toFixed(2) }} shulkers</p>
+        </div>
+    </div>
+
     <div class="flex flex-row gap-3">
-        <img alt="item icon" v-if="iconPath" class="w-8 h-8 object-cover" :src="iconPath">
+        <div :class="['relative', {enchanted: hasEnchants}]" @mouseover="showTooltip = 'attributes'"
+             @mouseleave="showTooltip = false">
+            <img alt="item icon" v-if="iconPath" class="w-8 h-8 object-cover" :src="iconPath">
+
+            <div v-if="attributes && hasAttributes && showTooltip === 'attributes'"
+                 class="absolute left-0 top-full mt-1 bg-darkest p-2 border rounded shadow-lg z-10">
+
+                <div v-if="attributes.enchantments"
+                     v-for="[id, level] in Object.entries(attributes.enchantments)">
+                    {{ store.assets.enchantments[id] }} {{ level > 1 ? romanise(level) : '' }}
+                </div>
+
+                <div v-if="attributes.flight_duration">
+                    Flight duration {{ attributes.flight_duration }}
+                </div>
+            </div>
+
+        </div>
+
         <h5>{{ custom_name ?? asset?.display ?? id }}</h5>
     </div>
+
     <div>
         {{ price }} diamond{{ price > 1 ? 's' : '' }} / {{ amount != 1 ? amount : '' }}
         {{ per }}{{ amount > 1 ? 's' : '' }}
     </div>
+
     <span>{{ worldName }} {{ x }} {{ y }} {{ z }}</span>
 </template>

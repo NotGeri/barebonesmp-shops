@@ -81,6 +81,32 @@
         --btn-bg: #f04747;
         --btn-bg-hover: #CE3232;
     }
+
+    @keyframes shimmer {
+        0% {
+            background-position: -1000px 0;
+        }
+        100% {
+            background-position: 1000px 0;
+        }
+    }
+
+    .enchanted {
+        position: relative;
+        display: inline-block;
+    }
+
+    .enchanted::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(159, 90, 253, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
+        animation: shimmer 130s infinite;
+        opacity: 0.6;
+    }
 }
 
 

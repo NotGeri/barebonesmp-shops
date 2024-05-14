@@ -7,8 +7,8 @@ frontend/build/
 frontend/dist/
 frontend/*.tsbuildinfo
 frontend/node_modules/
-frontend/public/block/
-frontend/public/item/
+frontend/src/assets/block/
+frontend/src/assets/item/
 frontend/src/assets/index.json
 
 plugin/.gradle/
