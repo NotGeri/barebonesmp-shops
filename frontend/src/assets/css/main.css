@@ -82,30 +82,33 @@
         --btn-bg-hover: #CE3232;
     }
 
-    @keyframes shimmer {
-        0% {
-            background-position: -1000px 0;
+    @keyframes enchant {
+        from {
+            background-position: -256px 1024px;
         }
-        100% {
-            background-position: 1000px 0;
+        to {
+            background-position: 256px -1024px;
         }
     }
 
-    .enchanted {
-        position: relative;
-        display: inline-block;
-    }
-
-    .enchanted::after {
-        content: '';
+    .enchant:after {
         position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
         width: 100%;
-        background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(159, 90, 253, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
-        animation: shimmer 130s infinite;
+        height: 100%;
+        top: 0;
+        right: 0;
+        image-rendering: pixelated;
+        mix-blend-mode: screen;
+        content: '';
         opacity: 0.6;
+        background-image: url('../images/enchant.webp');
+        background-size: 512px 512px;
+        filter: blur(2px) contrast(200%);
+        transform: rotate(-8deg);
+        animation-name: enchant;
+        animation-duration: 32s;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
     }
 }
 

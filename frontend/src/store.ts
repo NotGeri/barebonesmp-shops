@@ -1,26 +1,23 @@
 import { defineStore } from 'pinia';
-import index from '@/assets/index.json';
+import index from '@/assets/translations.json';
 
-export type Asset = {
-    display: string
-    path: string
-    type: string
-}
-
-export type Assets = {
+export type Translations = {
     enchantments: Record<string, string>
-    entries: Record<string, Asset>
+    items: Record<string, string>
 }
 
 type Data = {
-    assets: Assets
+    translations: Translations
 }
 
 export const useStore = defineStore('data', {
         state: (): Data => {
             return {
-                assets: index as Assets,
+                translations: index as Translations,
             };
         },
     },
 );
+
+export class Asset {
+}

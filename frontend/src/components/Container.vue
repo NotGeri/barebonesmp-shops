@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { type Asset, useStore } from '@/store';
-import { romanise } from '../utils';
+import { useStore } from '@/store';
+import { romanise } from '@/utils';
 
 export type Per = 'piece' | 'stack' | 'shulker'
 
@@ -26,13 +26,10 @@ export type ContainerProps = {
     y?: number
     z?: number
     world?: string
-
-    asset?: Asset
 }
 
 const store = useStore();
 const props = defineProps<ContainerProps>();
-const iconPath = computed(() => props.asset?.path);
 
 const STACK = 64;
 const SHULKER = 27;
@@ -97,16 +94,16 @@ const hasAttributes = computed(() => {
     </div>
 
     <div class="flex flex-row gap-3">
-        <div :class="['relative', {enchanted: hasEnchants}]" @mouseover="showTooltip = 'attributes'"
+        <div :class="['relative', {enchant: hasEnchants}]" @mouseover="showTooltip = 'attributes'"
              @mouseleave="showTooltip = false">
-            <img alt="item icon" v-if="iconPath" class="w-8 h-8 object-cover" :src="iconPath">
+            <img alt="item icon" class="w-8 h-8 object-cover" :src="`/items/${id?.replace('minecraft:', '')}.webp`">
 
             <div v-if="attributes && hasAttributes && showTooltip === 'attributes'"
                  class="absolute left-0 top-full mt-1 bg-darkest p-2 border rounded shadow-lg z-10">
 
                 <div v-if="attributes.enchantments"
                      v-for="[id, level] in Object.entries(attributes.enchantments)">
-                    {{ store.assets.enchantments[id] }} {{ level > 1 ? romanise(level) : '' }}
+                    {{ store.translations.enchantments[id] }} {{ level > 1 ? romanise(level) : '' }}
                 </div>
 
                 <div v-if="attributes.flight_duration">
@@ -116,7 +113,7 @@ const hasAttributes = computed(() => {
 
         </div>
 
-        <h5>{{ custom_name ?? asset?.display ?? id }}</h5>
+        <h5>{{ custom_name ?? store.translations.items[id] ?? id }}</h5>
     </div>
 
     <div>

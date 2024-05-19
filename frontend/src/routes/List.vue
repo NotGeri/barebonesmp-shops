@@ -16,12 +16,6 @@ const refetch = async () => {
     const response = await fetch(import.meta.env.VITE_BACKEND);
     const data = await response.json() as { containers: ContainerProps[], shops: ShopProps[] };
     shops.value = data.shops;
-
-    for (const shop of data.shops) {
-        for (const container of shop.containers) {
-            container.asset = store.assets.entries[container.id.replace('minecraft:', '')];
-        }
-    }
 };
 
 onMounted(async () => {
@@ -49,8 +43,8 @@ const filteredShops = computed((): ShopProps[] => {
         const lower = query.value.toLowerCase();
         filtered = shops.value.reduce<ShopProps[]>((acc, shop) => {
 
-            const matchingContainers = shop.containers.filter(container =>
-                container.id?.toLowerCase().includes(lower) || container?.asset?.display?.toLowerCase().includes(lower),
+            const matchingContainers = shop.containers.filter(container => // Todo (notgeri):
+                container.id?.toLowerCase().includes(lower) || store.translations.items[container.id]?.toLowerCase().includes(lower),
             ) ?? [];
 
             if (matchingContainers.length > 0) {
